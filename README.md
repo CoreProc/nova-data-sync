@@ -103,7 +103,8 @@ class TestImportAction extends ImportAction
 ```
 
 Define the expected headers in the `expectedHeaders()` method. This will be used to validate the headers of the CSV. It
-does not have to have the same order as the CSV file. It will thrown an error if it does not find the expected headers.
+does not have to have the same order as the CSV file. It will throw an error in the action if the headers do not exist
+in the CSV.
 
 Next, create an `ImportProcessor` class and define it in the `$processor` value of your `ImportAction`.
 
