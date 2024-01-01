@@ -74,6 +74,10 @@ public function tools()
 }
 ```
 
+It should appear in Nova's sidebar like this:
+
+![Import Action](https://raw.githubusercontent.com/coreproc/nova-data-sync/main/docs/import-index.png)
+
 ### Importing Data
 
 To start with creating an Import feature, you will need two create two classes that extend the following:
