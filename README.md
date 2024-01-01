@@ -150,7 +150,7 @@ If you throw an `Exception` inside the `process()` method, the row will be marke
 will be shown in the failed report for the Import.
 
 The `rules()` method is where you can define the validation rules for each row of the CSV file. It will be passed the
-`$row` and `$rowIndex` parameters. The `$row` parameter is an array of the CSV row's data. The `$rowIndex` parameter is 
+`$row` and `$rowIndex` parameters. The `$row` parameter is an array of the CSV row's data. The `$rowIndex` parameter is
 the index. Return an array of Laravel's validation rules.
 
 Next, put your `ImportAction` inside the `actions()` method of one of your Nova Resources:
@@ -168,4 +168,37 @@ It should look something like this:
 
 ![Import Action](https://raw.githubusercontent.com/coreproc/nova-data-sync/main/docs/import-action.png)
 
+#### Importing Configuration
 
+You can find configuration options for the Import feature in `config/nova-data-sync.php`.
+
+```php
+'imports' => [
+    'disk' => env('MEDIA_DISK', 'public'),
+    'chunk_size' => 1000,
+    'queue' => 'default',
+],
+```
+
+### User Configuration
+
+Each import and export have a morphable `user()` relationship. This is used to determine who imported or exported the
+data. You will need to define Nova resource of each user type that you want to use for the import and export features.
+This can be done in the `config/nova-data-sync.php` file.
+
+```php
+'nova_resources' => [
+
+    /**
+     * Since users are defined as morphable, we need to specify the Nova resource
+     * associated with the users we want.
+     */
+    'users' => [
+        \App\Nova\User::class,
+    ],
+
+],
+```
+
+By default, this already has the `App\Nova\User::class` resource. You can add more user resources like 
+`App\Nova\BackendUser` as needed.
