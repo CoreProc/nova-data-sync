@@ -1,6 +1,8 @@
-# Nova Data Sync
+# Laravel Nova Data Sync
 
 This is a Laravel Nova tool to that provides features to import and export CSV files.
+
+![Import Action](https://raw.githubusercontent.com/coreproc/nova-data-sync/main/docs/import-index.png)
 
 ## Installation
 
@@ -74,9 +76,7 @@ public function tools()
 }
 ```
 
-It should appear in Nova's sidebar like this:
-
-![Import Action](https://raw.githubusercontent.com/coreproc/nova-data-sync/main/docs/import-index.png)
+The Nova Data Sync tool should now appear in Nova's sidebar.
 
 ### Importing Data
 
