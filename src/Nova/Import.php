@@ -156,7 +156,7 @@ class Import extends Resource
     public function actions(NovaRequest $request): array
     {
         return [
-            (new TestImportAction()),
+            //
         ];
     }
 

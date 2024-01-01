@@ -49,7 +49,7 @@ abstract class ImportProcessor implements ShouldQueue
      *
      * @var array $row contains the row data from the CSV file.
      */
-    abstract protected function process(array $row, int $rowIndex): ?Model;
+    abstract protected function process(array $row, int $rowIndex): void;
 
     public static function chunkSize(): int
     {

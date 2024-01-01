@@ -125,15 +125,16 @@ use Illuminate\Support\Facades\Log;
 
 class TestImportProcessor extends ImportProcessor
 {
-    protected function process(array $row, int $rowIndex): ?Model
+    protected function process(array $row, int $rowIndex): void
     {
         Log::info('processing row ' . $rowIndex);
-
-        return null;
+        
+        // Put the logic to process each row in your imported CSV here
     }
 
     protected function rules(array $row, int $rowIndex): array
     {
+        // Use Laravel validation rules to validate the values in each row.
         return [
             'field1' => ['required'],
             'field2' => ['required'],
@@ -144,6 +145,9 @@ class TestImportProcessor extends ImportProcessor
 
 The `process()` method is where you can define the logic for each row of the CSV file. It will be passed the `$row` and
 `$rowIndex` parameters. The `$row` parameter is an array of the CSV row's data. The `$rowIndex` parameter is the index.
+
+If you throw an `Exception` inside the `process()` method, the row will be marked as failed and the exception message
+will be shown in the failed report for the Import.
 
 The `rules()` method is where you can define the validation rules for each row of the CSV file. It will be passed the
 `$row` and `$rowIndex` parameters. The `$row` parameter is an array of the CSV row's data. The `$rowIndex` parameter is 
