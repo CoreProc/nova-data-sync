@@ -18,8 +18,8 @@ Publish the package's config and migrations:
 php artisan vendor:publish --provider="Coreproc\NovaDataSync\ToolServiceProvider"
 ```
 
-This package requires Laravel Horizon to be installed. If you have not installed Laravel Horizon, you can install it by
-running:
+This package requires [Laravel Horizon](https://laravel.com/docs/10.x/horizon) and comes with the package. If you have 
+not gone through Horizon's install process yet, you can install it by running:
 
 ```bash
 php artisan horizon:install
@@ -35,24 +35,19 @@ php artisan queue:batches-table
 php artisan migrate
 ```
 
-This package also requires [spatie/laravel-media-library](https://github.com/spatie/laravel-medialibrary). If you have
-not installed Media Library, you should
-publish the migrations for it:
+This package also requires [spatie/laravel-media-library](https://github.com/spatie/laravel-medialibrary) and comes with this package. If you have not gone through
+the installation process of Media Library, you should publish the migrations for it:
 
 ```bash
 php artisan vendor:publish --provider="Spatie\MediaLibrary\MediaLibraryServiceProvider" --tag="medialibrary-migrations"
+
+php artisan migrate
 ```
 
 Publish Media Library's config file:
 
 ```bash
 php artisan vendor:publish --provider="Spatie\MediaLibrary\MediaLibraryServiceProvider" --tag="medialibrary-config"
-```
-
-Run the migrations:
-
-```bash
-php artisan migrate
 ```
 
 Also run the following command to publish the config file for
