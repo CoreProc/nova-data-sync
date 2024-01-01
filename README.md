@@ -158,6 +158,6 @@ public function actions(Request $request)
 
 It should look something like this:
 
-![Import Action](https://raw.githubusercontent.com/coreproc/nova-data-sync/main/docs/images/import-action.png)
+![Import Action](https://raw.githubusercontent.com/coreproc/nova-data-sync/main/docs/import-action.png)
 
 
