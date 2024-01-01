@@ -1,0 +1,34 @@
+{
+  "name": "coreproc/nova-data-sync",
+  "description": "A Laravel Nova tool for importing and exporting data from CSV or Excel files.",
+  "keywords": [
+    "laravel",
+    "nova"
+  ],
+  "license": "MIT",
+  "require": {
+    "php": "^7.3|^8.0",
+    "ebess/advanced-nova-media-library": "^4.1",
+    "flatroy/nova-progressbar-field": "^0.0.6",
+    "laravel/horizon": "^5.21",
+    "spatie/laravel-medialibrary": "^10.0",
+    "spatie/simple-excel": "^3.3"
+  },
+  "autoload": {
+    "psr-4": {
+      "Coreproc\\NovaDataSync\\": "src/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Coreproc\\NovaDataSync\\ToolServiceProvider"
+      ]
+    }
+  },
+  "config": {
+    "sort-packages": true
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true
+}
