@@ -1,9 +1,9 @@
 <?php
 
-namespace Coreproc\NovaDataSync\Http\Middleware;
+namespace Coreproc\NovaDataSync\Import\Http\Middleware;
 
-use Laravel\Nova\Nova;
 use Coreproc\NovaDataSync\NovaDataSync;
+use Laravel\Nova\Nova;
 
 class Authorize
 {
