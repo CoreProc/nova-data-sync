@@ -1,18 +1,22 @@
 <?php
 
-namespace Coreproc\NovaDataSync\Import\Http\Middleware;
+namespace Coreproc\NovaDataSync\Http\Middleware;
 
+use Closure;
 use Coreproc\NovaDataSync\NovaDataSync;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Laravel\Nova\Nova;
+use Laravel\Nova\Tool;
 
 class Authorize
 {
     /**
      * Handle the incoming request.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure(\Illuminate\Http\Request):mixed  $next
-     * @return \Illuminate\Http\Response
+     * @param  Request  $request
+     * @param  Closure(Request):mixed  $next
+     * @return Response
      */
     public function handle($request, $next)
     {
@@ -24,7 +28,7 @@ class Authorize
     /**
      * Determine whether this tool belongs to the package.
      *
-     * @param  \Laravel\Nova\Tool  $tool
+     * @param  Tool  $tool
      * @return bool
      */
     public function matchesTool($tool)

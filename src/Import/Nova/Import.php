@@ -1,9 +1,9 @@
 <?php
 
-namespace Coreproc\NovaDataSync\Nova;
+namespace Coreproc\NovaDataSync\Import\Nova;
 
 use App\Nova\Resource;
-use Coreproc\NovaDataSync\Enum\Status as StatusEnum;
+use Coreproc\NovaDataSync\Import\Enum\Status as StatusEnum;
 use Ebess\AdvancedNovaMediaLibrary\Fields\Files;
 use Flatroy\FieldProgressbar\FieldProgressbar;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -21,7 +21,7 @@ class Import extends Resource
     /**
      * The model the resource corresponds to.
      */
-    public static string $model = \Coreproc\NovaDataSync\Models\Import::class;
+    public static string $model = \Coreproc\NovaDataSync\Import\Models\Import::class;
 
     /**
      * The single value that should be used to represent the resource when being displayed.
@@ -110,7 +110,7 @@ class Import extends Resource
             ->onlyOnDetail()
             ->readonly();
 
-        $import = \Coreproc\NovaDataSync\Models\Import::find($resourceId);
+        $import = \Coreproc\NovaDataSync\Import\Models\Import::find($resourceId);
 
         if (!$import->hasMedia('failed')) {
             return $failedReportField;

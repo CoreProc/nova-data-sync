@@ -1,8 +1,8 @@
 <?php
 
-namespace Coreproc\NovaDataSync\Jobs;
+namespace Coreproc\NovaDataSync\Import\Jobs;
 
-use Coreproc\NovaDataSync\Models\Import;
+use Coreproc\NovaDataSync\Import\Models\Import;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -40,6 +40,8 @@ abstract class ImportProcessor implements ShouldQueue
         $this->className = self::class;
         Log::debug('[' . $this->className . '] Initialized');
     }
+
+    abstract public static function expectedHeaders(): array;
 
     abstract protected function rules(array $row, int $rowIndex): array;
 

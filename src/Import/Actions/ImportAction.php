@@ -1,86 +1,38 @@
 <?php
 
-namespace Coreproc\NovaDataSync\Actions;
+namespace Coreproc\NovaDataSync\Import\Actions;
 
-use App\Nova\Imports\TestImport\TestImportProcessor;
-use Coreproc\NovaDataSync\Enum\Status;
-use Coreproc\NovaDataSync\Jobs\BulkImportProcessor;
-use Coreproc\NovaDataSync\Models\Import;
-use Illuminate\Bus\Queueable;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Queue\InteractsWithQueue;
+use Coreproc\NovaDataSync\Import\Enum\Status;
+use Coreproc\NovaDataSync\Import\Jobs\BulkImportProcessor;
+use Coreproc\NovaDataSync\Import\Jobs\ImportProcessor;
+use Coreproc\NovaDataSync\Import\Models\Import;
 use Illuminate\Support\Str;
-use Laravel\Nova\Actions\Action;
-use Laravel\Nova\Actions\ActionResponse;
-use Laravel\Nova\Fields\ActionFields;
-use Laravel\Nova\Fields\File;
-use Laravel\Nova\Http\Requests\NovaRequest;
-use Laravel\Nova\Nova;
+use InvalidArgumentException;
 use Spatie\MediaLibrary\MediaCollections\Exceptions\FileDoesNotExist;
 use Spatie\MediaLibrary\MediaCollections\Exceptions\FileIsTooBig;
 use Spatie\SimpleExcel\SimpleExcelReader;
 
-abstract class ImportAction extends Action
+class ImportAction
 {
-    use InteractsWithQueue;
-    use Queueable;
-
-    public $onlyOnIndex = true;
-
-    public $standalone = true;
-
-    public $withoutConfirmation = false;
-
-    public $confirmText = '';
-
-    private string $helpText = '';
-
-    public string $processor;
-
-    public function __construct()
-    {
-        $this->onQueue(config('nova-data-sync.imports.queue', 'default'));
-    }
-
-    abstract protected function expectedHeaders(): array;
-
-    protected function checkHeaders(array $headers): bool
-    {
-        return count(array_diff($this->expectedHeaders(), $headers)) === 0;
-    }
-
     /**
-     * Override this method to provide help text
-     */
-    public function helpText(): string
-    {
-        $params = http_build_query(['class' => get_class($this)]);
-        $url = url('nova-vendor/nova-data-sync/imports/sample?' . $params);
-
-        return '<a href="' . $url . '">Download sample file</a>';
-    }
-
-    /**
-     * Perform the action on the given models.
-     *
-     * @param ActionFields $fields
-     * @return ActionResponse|Action
      * @throws FileDoesNotExist
      * @throws FileIsTooBig
+     * @throws InvalidArgumentException
      */
-    public function handle(ActionFields $fields): ActionResponse|Action
+    public static function make(string $processor, string $filepath): Import
     {
-        /** @var UploadedFile $file */
-        $file = $fields->get('file');
-
-        $excelReader = SimpleExcelReader::create($file->path(), 'csv')
+        $excelReader = SimpleExcelReader::create($filepath, 'csv')
             ->formatHeadersUsing(fn($header) => Str::snake($header));
+
+        if (!is_subclass_of($processor, ImportProcessor::class) && $processor !== ImportProcessor::class) {
+            throw new InvalidArgumentException('Class name must be a subclass of ' . ImportProcessor::class);
+        }
 
         /**
          * Check the required columns
          */
-        if ($this->checkHeaders($excelReader->getHeaders()) === false) {
-            return Action::danger('Your upload has invalid headers.');
+        if (static::checkHeaders($processor::expectedHeaders(), $excelReader->getHeaders()) === false) {
+            throw new InvalidArgumentException('File headers do not match the expected headers.');
         }
 
         $excelReader->getRows()->count();
@@ -89,31 +41,27 @@ abstract class ImportAction extends Action
         $import = Import::query()->create([
             'user_id' => request()->user()->id,
             'user_type' => get_class(request()->user()),
-            'filename' => $file->getClientOriginalName(),
+            'filename' => basename($filepath),
             'status' => Status::PENDING,
-            'processor' => $this->processor,
+            'processor' => $processor,
             'file_total_rows' => $excelReader->getRows()->count(),
         ]);
 
-        $import->addMedia($file->path())->toMediaCollection('file');
+        $import->addMedia($filepath)->toMediaCollection('file');
 
         dispatch(new BulkImportProcessor($import));
 
-        return Action::redirect(url(Nova::path() . '/resources/imports/' . $import->id));
+        return $import;
     }
 
-    /**
-     * Get the fields available on the action.
-     */
-    public function fields(NovaRequest $request): array
+    public static function checkHeaders(array $expectedHeaders, array $headers): bool
     {
-        return [
-            File::make('File', 'file')
-                ->rules([
-                    'required',
-                    'mimes:txt,csv',
-                ])
-                ->help($this->helpText()),
-        ];
+        foreach ($expectedHeaders as $expectedHeader) {
+            if (!in_array($expectedHeader, $headers)) {
+                return false;
+            }
+        }
+
+        return count(array_diff($expectedHeaders, $headers)) === 0;
     }
 }

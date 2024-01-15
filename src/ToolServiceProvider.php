@@ -3,7 +3,7 @@
 namespace Coreproc\NovaDataSync;
 
 use Coreproc\NovaDataSync\Http\Middleware\Authorize;
-use Coreproc\NovaDataSync\Nova\Import;
+use Coreproc\NovaDataSync\Import\Nova\Import;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Nova\Events\ServingNova;

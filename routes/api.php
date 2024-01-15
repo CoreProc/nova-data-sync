@@ -1,7 +1,6 @@
 <?php
 
-use Coreproc\NovaDataSync\Actions\ImportAction;
-use Illuminate\Http\Request;
+use Coreproc\NovaDataSync\Import\Http\Controllers\ImportSampleController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -15,24 +14,4 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/imports/sample', function (Request $request) {
-    $importActionClass = $request->get('class');
-
-    if (class_exists($importActionClass) === false) {
-        return response('', 404);
-    }
-
-    /** @var ImportAction $importAction */
-    $importAction = new $importActionClass();
-
-    // Check if $importAction is an instance of ImportAction
-    if ($importAction instanceof ImportAction === false) {
-        return response('', 404);
-    }
-
-    $fileName = class_basename($importAction->processor) . '-sample.csv';
-
-    \Spatie\SimpleExcel\SimpleExcelWriter::streamDownload($fileName)
-        ->addHeader($importAction->expectedHeaders())
-        ->toBrowser();
-});
+Route::get('/imports/sample', ImportSampleController::class);

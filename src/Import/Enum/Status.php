@@ -1,6 +1,6 @@
 <?php
 
-namespace Coreproc\NovaDataSync\Enum;
+namespace Coreproc\NovaDataSync\Import\Enum;
 
 enum Status: string
 {

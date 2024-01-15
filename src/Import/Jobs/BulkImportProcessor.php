@@ -1,11 +1,11 @@
 <?php
 
-namespace Coreproc\NovaDataSync\Jobs;
+namespace Coreproc\NovaDataSync\Import\Jobs;
 
-use Coreproc\NovaDataSync\Enum\Status;
-use Coreproc\NovaDataSync\Events\ImportCompletedEvent;
-use Coreproc\NovaDataSync\Events\ImportStartedEvent;
-use Coreproc\NovaDataSync\Models\Import;
+use Coreproc\NovaDataSync\Import\Enum\Status;
+use Coreproc\NovaDataSync\Import\Events\ImportCompletedEvent;
+use Coreproc\NovaDataSync\Import\Events\ImportStartedEvent;
+use Coreproc\NovaDataSync\Import\Models\Import;
 use Illuminate\Bus\Batch;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
@@ -55,10 +55,7 @@ class BulkImportProcessor implements ShouldQueue
         $mediaContent = stream_get_contents($media->stream());
         file_put_contents($filepath, $mediaContent);
 
-        $readerRows = SimpleExcelReader::create(
-            $filepath,
-            'csv',
-        )->getRows();
+        $readerRows = SimpleExcelReader::create($filepath, 'csv')->getRows();
 
         $chunks = $readerRows->chunk($this->import->processor::chunkSize());
 

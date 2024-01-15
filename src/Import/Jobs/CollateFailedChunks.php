@@ -1,8 +1,8 @@
 <?php
 
-namespace Coreproc\NovaDataSync\Jobs;
+namespace Coreproc\NovaDataSync\Import\Jobs;
 
-use Coreproc\NovaDataSync\Models\Import;
+use Coreproc\NovaDataSync\Import\Models\Import;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
