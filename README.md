@@ -168,6 +168,31 @@ It should look something like this:
 
 ![Import Action](https://raw.githubusercontent.com/coreproc/nova-data-sync/main/docs/import-action.png)
 
+
+#### Using the Import feature without the Nova Action
+
+If you want to use the Import feature without the Nova Action, you can still use your ImportProcessor class. Here is an
+example:
+
+```php
+use Coreproc\NovaDataSync\Import\Actions\ImportAction;
+
+// Get the filepath of the CSV file. Should be coming from the local system.
+$filepath = 'path/to/file.csv';
+
+$importProcessor = TestImportProcessor::class;
+
+try {
+    $importModel = ImportAction::make($importProcessor, $filepath);
+} catch (Exception $e) {
+    // Handle exception
+}
+```
+
+This will dispatch the jobs necessary to handle the import. You'll also be able to see the progress of the import in the
+Nova Data Sync tool.
+
+
 #### Importing Configuration
 
 You can find configuration options for the Import feature in `config/nova-data-sync.php`.
@@ -202,26 +227,3 @@ This can be done in the `config/nova-data-sync.php` file.
 
 By default, this already has the `App\Nova\User::class` resource. You can add more user resources like
 `App\Nova\BackendUser` as needed.
-
-### Using the Import feature without the Nova Action
-
-If you want to use the Import feature without the Nova Action, you can still use your ImportProcessor class. Here is an
-example:
-
-```php
-use Coreproc\NovaDataSync\Import\Actions\ImportAction;
-
-// Get the filepath of the CSV file. Should be coming from the local system.
-$filepath = 'path/to/file.csv';
-
-$importProcessor = TestImportProcessor::class;
-
-try {
-    $importModel = ImportAction::make($importProcessor, $filepath);
-} catch (Exception $e) {
-    // Handle exception
-}
-```
-
-This will dispatch the jobs necessary to handle the import. You'll also be able to see the progress of the import in the
-Nova Data Sync tool.
