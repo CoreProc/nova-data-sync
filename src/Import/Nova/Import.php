@@ -71,6 +71,9 @@ class Import extends Resource
             Number::make('Total Rows Processed')->onlyOnDetail(),
 
             FieldProgressbar::make('Progress', function ($model) {
+                if (!$model->file_total_rows) {
+                    return 0;
+                }
                 return $model->total_rows_processed / $model->file_total_rows;
             })->onlyOnDetail(),
 

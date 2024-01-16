@@ -66,6 +66,24 @@ class BulkImportProcessor implements ShouldQueue
             $jobs[] = new $this->import->processor($this->import, $rows, $index + 1);
         }
 
+        if (empty($jobs)) {
+            Log::debug('[BulkImportProcessor] No jobs to dispatch. Marking import as completed.');
+
+            $this->import->update([
+                'status' => Status::COMPLETED,
+                'completed_at' => now(),
+            ]);
+
+            // Remove the import file from local storage
+            if (file_exists($filepath)) {
+                unlink($filepath);
+            }
+
+            event(new ImportCompletedEvent($this->import));
+
+            return;
+        }
+
         Log::debug('[BulkImportProcessor] Dispatching jobs...', [$jobs]);
 
         $import = $this->import;
@@ -88,8 +106,6 @@ class BulkImportProcessor implements ShouldQueue
                 // Dispatch job to collate failed chunks to one file
                 dispatch(new CollateFailedChunks($import))
                     ->onQueue(config('nova-data-sync.imports.queue', 'default'));
-
-                event(new ImportCompletedEvent($import));
             })
             ->allowFailures()
             ->name($this->import->id . '-import')
