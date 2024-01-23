@@ -264,12 +264,15 @@ use Coreproc\NovaDataSync\Export\Nova\Action\ExportNovaAction;
 
 class UserExportAction extends ExportNovaAction
 {
-    protected function processor(): ExportProcessor
+    protected function processor(ActionFields $fields, Collection $models): ExportProcessor
     {
         return new UserExportProcessor();
     }
 }
 ```
+
+If you have additional fields that you want to add to the Export feature, you can define them in the `fields()` method
+and access them through the `$fields` property.
 
 Now, you can add the `ExportNovaAction` to your Nova Resource:
 

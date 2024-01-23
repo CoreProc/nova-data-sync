@@ -15,13 +15,13 @@ abstract class ExportNovaAction extends Action
 
     public $standalone = true;
 
-    abstract protected function processor(): ExportProcessor;
+    abstract protected function processor(ActionFields $fields, Collection $models): ExportProcessor;
 
     /**
      * Perform the action on the given models.
      */
     public function handle(ActionFields $fields, Collection $models): void
     {
-        dispatch($this->processor());
+        dispatch($this->processor($fields, $models));
     }
 }
