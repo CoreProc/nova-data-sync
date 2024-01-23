@@ -4,6 +4,7 @@ namespace Coreproc\NovaDataSync\Export\Nova;
 
 use App\Nova\Resource;
 use Coreproc\NovaDataSync\Enum\Status as StatusEnum;
+use Ebess\AdvancedNovaMediaLibrary\Fields\Files;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Laravel\Nova\Fields\DateTime;
@@ -76,6 +77,10 @@ class Export extends Resource
 
             DateTime::make('Completed At')
                 ->onlyOnDetail()
+                ->readonly(),
+
+            Files::make('File', 'file')
+                ->hideFromIndex()
                 ->readonly(),
         ];
     }
