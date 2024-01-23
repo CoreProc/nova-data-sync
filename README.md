@@ -144,7 +144,7 @@ Next, create an `ImportNovaAction` class and define the `$processor` class you j
 
 namespace App\Nova\Imports\TestImport;
 
-use Coreproc\NovaDataSync\Import\Actions\ImportNovaAction;
+use Coreproc\NovaDataSync\Import\Nova\Actions\ImportNovaAction;
 
 class TestImportAction extends ImportNovaAction
 {
@@ -153,7 +153,7 @@ class TestImportAction extends ImportNovaAction
 }
 ```
 
-Next, put your `ImportAction` inside the `actions()` method of one of your Nova Resources:
+Next, put your `ImportNovaAction` inside the `actions()` method of one of your Nova Resources:
 
 ```php
 public function actions(Request $request)
@@ -169,7 +169,7 @@ It should look something like this:
 ![Import Action](https://raw.githubusercontent.com/coreproc/nova-data-sync/main/docs/import-action.png)
 
 
-#### Using the Import feature without the Nova Action
+### Using the Import feature without the Nova Action
 
 If you want to use the Import feature without the Nova Action, you can still use your ImportProcessor class. Here is an
 example:
@@ -182,8 +182,10 @@ $filepath = 'path/to/file.csv';
 
 $importProcessor = TestImportProcessor::class;
 
+$user = request()->user(); // This can be null
+
 try {
-    $importModel = ImportAction::make($importProcessor, $filepath);
+    $importModel = ImportAction::make($importProcessor, $filepath, $user);
 } catch (Exception $e) {
     // Handle exception
 }
@@ -193,7 +195,7 @@ This will dispatch the jobs necessary to handle the import. You'll also be able 
 Nova Data Sync tool.
 
 
-#### Importing Configuration
+### Importing Configuration
 
 You can find configuration options for the Import feature in `config/nova-data-sync.php`.
 
@@ -204,6 +206,8 @@ You can find configuration options for the Import feature in `config/nova-data-s
     'queue' => 'default',
 ],
 ```
+
+### Exporting Data Using a Nova Action
 
 ### User Configuration
 

@@ -2,10 +2,11 @@
 
 namespace Coreproc\NovaDataSync\Import\Actions;
 
-use Coreproc\NovaDataSync\Import\Enum\Status;
+use Coreproc\NovaDataSync\Enum\Status;
 use Coreproc\NovaDataSync\Import\Jobs\BulkImportProcessor;
 use Coreproc\NovaDataSync\Import\Jobs\ImportProcessor;
 use Coreproc\NovaDataSync\Import\Models\Import;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Spatie\MediaLibrary\MediaCollections\Exceptions\FileDoesNotExist;
@@ -19,7 +20,7 @@ class ImportAction
      * @throws FileIsTooBig
      * @throws InvalidArgumentException
      */
-    public static function make(string $processor, string $filepath): Import
+    public static function make(string $processor, string $filepath, ?Authenticatable $user = null): Import
     {
         $excelReader = SimpleExcelReader::create($filepath, 'csv')
             ->formatHeadersUsing(fn($header) => Str::snake($header));
@@ -39,8 +40,8 @@ class ImportAction
 
         /** @var Import $import */
         $import = Import::query()->create([
-            'user_id' => request()->user()->id,
-            'user_type' => get_class(request()->user()),
+            'user_id' => $user?->id ?? null,
+            'user_type' => !empty($user) ? get_class($user) : null,
             'filename' => basename($filepath),
             'status' => Status::PENDING,
             'processor' => $processor,
@@ -52,6 +53,13 @@ class ImportAction
         dispatch(new BulkImportProcessor($import));
 
         return $import;
+    }
+
+    public function setUser(Authenticatable $user): self
+    {
+        $this->user = $user;
+
+        return $this;
     }
 
     public static function checkHeaders(array $expectedHeaders, array $headers): bool

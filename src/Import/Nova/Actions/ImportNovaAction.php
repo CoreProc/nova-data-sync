@@ -1,13 +1,13 @@
 <?php
 
-namespace Coreproc\NovaDataSync\Import\Actions;
+namespace Coreproc\NovaDataSync\Import\Nova\Actions;
 
+use Coreproc\NovaDataSync\Import\Actions\ImportAction;
 use Coreproc\NovaDataSync\Import\Jobs\ImportProcessor;
 use Exception;
 use Illuminate\Bus\Queueable;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Laravel\Nova\Actions\Action;
 use Laravel\Nova\Actions\ActionResponse;
@@ -65,7 +65,7 @@ abstract class ImportNovaAction extends Action
         $file = $fields->get('file');
 
         try {
-            $import = ImportAction::make($this->processor, $file->path());
+            $import = ImportAction::make($this->processor, $file->path(), request()->user());
         } catch (Exception $e) {
             return Action::danger($e->getMessage());
         }

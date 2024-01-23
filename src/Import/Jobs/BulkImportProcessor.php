@@ -2,7 +2,7 @@
 
 namespace Coreproc\NovaDataSync\Import\Jobs;
 
-use Coreproc\NovaDataSync\Import\Enum\Status;
+use Coreproc\NovaDataSync\Enum\Status;
 use Coreproc\NovaDataSync\Import\Events\ImportCompletedEvent;
 use Coreproc\NovaDataSync\Import\Events\ImportStartedEvent;
 use Coreproc\NovaDataSync\Import\Models\Import;

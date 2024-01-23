@@ -1,11 +1,9 @@
 <?php
 
-namespace Coreproc\NovaDataSync\Import\Nova;
+namespace Coreproc\NovaDataSync\Export\Nova;
 
 use App\Nova\Resource;
 use Coreproc\NovaDataSync\Enum\Status as StatusEnum;
-use Ebess\AdvancedNovaMediaLibrary\Fields\Files;
-use Flatroy\FieldProgressbar\FieldProgressbar;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Laravel\Nova\Fields\DateTime;
@@ -16,12 +14,12 @@ use Laravel\Nova\Fields\Status;
 use Laravel\Nova\Fields\Text;
 use Laravel\Nova\Http\Requests\NovaRequest;
 
-class Import extends Resource
+class Export extends Resource
 {
     /**
      * The model the resource corresponds to.
      */
-    public static string $model = \Coreproc\NovaDataSync\Import\Models\Import::class;
+    public static string $model = \Coreproc\NovaDataSync\Export\Models\Export::class;
 
     /**
      * The single value that should be used to represent the resource when being displayed.
@@ -49,14 +47,14 @@ class Import extends Resource
      */
     public function fields(NovaRequest $request): array
     {
-        $fields = [
+        return [
             ID::make()->sortable(),
 
             Status::make('Status')
                 ->loadingWhen([StatusEnum::PENDING->value, StatusEnum::IN_PROGRESS->value])
                 ->failedWhen([StatusEnum::FAILED->value]),
 
-            MorphTo::make('Uploaded By', 'user')
+            MorphTo::make('Initiated By', 'user')
                 ->types(config('nova-data-sync.nova_resources.users'))
                 ->sortable()
                 ->readonly(),
@@ -67,17 +65,6 @@ class Import extends Resource
                 ->readonly(),
 
             Number::make('File Total Rows')->onlyOnDetail(),
-
-            Number::make('Total Rows Processed')->onlyOnDetail(),
-
-            FieldProgressbar::make('Progress', function ($model) {
-                if (!$model->file_total_rows) {
-                    return 0;
-                }
-                return $model->total_rows_processed / $model->file_total_rows;
-            })->onlyOnDetail(),
-
-            Number::make('Total Rows Failed')->onlyOnDetail(),
 
             DateTime::make('Created At')
                 ->sortable()
@@ -90,42 +77,7 @@ class Import extends Resource
             DateTime::make('Completed At')
                 ->onlyOnDetail()
                 ->readonly(),
-
-            Text::make('Duration', function () {
-                if (!$this->started_at || !$this->completed_at) {
-                    return null;
-                }
-
-                return $this->started_at->diffForHumans($this->completed_at, true);
-            })->onlyOnDetail(),
         ];
-
-        if ($request->isResourceDetailRequest()) {
-            $fields[] = $this->getFailedReportField($request->resourceId);
-        }
-
-        return $fields;
-    }
-
-    private function getFailedReportField($resourceId)
-    {
-        $failedReportField = Files::make('Failed Report', 'failed')
-            ->onlyOnDetail()
-            ->readonly();
-
-        $import = \Coreproc\NovaDataSync\Import\Models\Import::find($resourceId);
-
-        if (!$import->hasMedia('failed')) {
-            return $failedReportField;
-        }
-
-        $disk = $import->getFirstMedia('failed')->disk;
-
-        if (config("filesystems.disks.{$disk}.driver") === 's3') {
-            $failedReportField->temporary(now()->addMinutes(10));
-        }
-
-        return $failedReportField;
     }
 
     /**

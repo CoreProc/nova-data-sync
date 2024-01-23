@@ -11,15 +11,13 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('imports', function (Blueprint $table) {
+        Schema::create('exports', function (Blueprint $table) {
             $table->id();
             $table->nullableMorphs('user');
             $table->string('filename')->nullable();
             $table->string('status')->default(Status::PENDING);
             $table->string('processor')->nullable();
             $table->bigInteger('file_total_rows')->default(0);
-            $table->bigInteger('total_rows_processed')->default(0);
-            $table->bigInteger('total_rows_failed')->default(0);
             $table->timestamp('started_at')->nullable();
             $table->timestamp('completed_at')->nullable();
             $table->timestamps();
@@ -31,6 +29,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('imports');
+        Schema::dropIfExists('exports');
     }
 };
