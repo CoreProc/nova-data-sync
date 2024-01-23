@@ -209,6 +209,79 @@ You can find configuration options for the Import feature in `config/nova-data-s
 
 ### Exporting Data Using a Nova Action
 
+To start with creating an Export feature, you will need two create two classes that extend `ExportProcessor` and 
+`ExportNovaAction`.
+
+Here is a sample `ExportProcessor`:
+
+```php
+namespace App\Nova\Exports;
+
+use App\Models\User;
+use Coreproc\NovaDataSync\Export\Jobs\ExportProcessor;
+use Illuminate\Contracts\Database\Query\Builder;
+
+class UserExportProcessor extends ExportProcessor
+{
+    public function query(): Builder
+    {
+        return User::query();
+    }
+}
+```
+
+You can also define the `query()` method to return a query builder. This is useful if you want to export data from a
+database table.
+
+```php
+namespace App\Nova\Exports;
+
+use Coreproc\NovaDataSync\Export\Jobs\ExportProcessor;
+use DB;
+use Illuminate\Contracts\Database\Query\Builder;
+
+class UserExportProcessor extends ExportProcessor
+{
+    public function query(): Builder
+    {
+        return \DB::query()->from('users')
+            ->select([
+                'id',
+                'email',
+            ]);
+    }
+}
+```
+
+Next, create an `ExportNovaAction` class and create a `processor()` function that returns the processor class you just
+created.
+
+```php
+namespace App\Nova\Exports;
+
+use Coreproc\NovaDataSync\Export\Jobs\ExportProcessor;
+use Coreproc\NovaDataSync\Export\Nova\Action\ExportNovaAction;
+
+class UserExportAction extends ExportNovaAction
+{
+    protected function processor(): ExportProcessor
+    {
+        return new UserExportProcessor();
+    }
+}
+```
+
+Now, you can add the `ExportNovaAction` to your Nova Resource:
+
+```php
+public function actions(Request $request)
+{
+    return [
+        new UserExportAction(),
+    ];
+}
+```
+
 ### User Configuration
 
 Each import and export have a morphable `user()` relationship. This is used to determine who imported or exported the
