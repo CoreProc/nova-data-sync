@@ -18,7 +18,7 @@ Publish the package's config and migrations:
 php artisan vendor:publish --provider="Coreproc\NovaDataSync\ToolServiceProvider"
 ```
 
-This package requires [Laravel Horizon](https://laravel.com/docs/10.x/horizon) and comes with the package. If you have 
+This package requires [Laravel Horizon](https://laravel.com/docs/10.x/horizon) and comes with the package. If you have
 not gone through Horizon's install process yet, you can install it by running:
 
 ```bash
@@ -35,7 +35,8 @@ php artisan queue:batches-table
 php artisan migrate
 ```
 
-This package also requires [spatie/laravel-media-library](https://github.com/spatie/laravel-medialibrary) and comes with this package. If you have not gone through
+This package also requires [spatie/laravel-media-library](https://github.com/spatie/laravel-medialibrary) and comes with
+this package. If you have not gone through
 the installation process of Media Library, you should publish the migrations for it:
 
 ```bash
@@ -73,40 +74,13 @@ public function tools()
 
 The Nova Data Sync tool should now appear in Nova's sidebar.
 
-### Importing Data
+### Importing Data Using a Nova Action
 
 To start with creating an Import feature, you will need two create two classes that extend the following:
 
-- an `ImportAction` class that is essentially a Nova Action
-- and an `ImportProcess` class that contains the validation rules and process logic for each row of an imported CSV
+- an `ImportProcess` class that contains the validation rules and process logic for each row of an imported CSV
   file.
-
-Here is a sample `ImportAction` class:
-
-```php
-<?php
-
-namespace App\Nova\Imports\TestImport;
-
-use Coreproc\NovaDataSync\Actions\ImportAction;
-
-class TestImportAction extends ImportAction
-{
-    // A sample processor will be shown below
-    public string $processor = TestImportProcessor::class;
-    
-    public function expectedHeaders(): array
-    {
-        return ['field1', 'field2'];
-    }
-}
-```
-
-Define the expected headers in the `expectedHeaders()` method. This will be used to validate the headers of the CSV. It
-does not have to have the same order as the CSV file. It will throw an error in the action if the headers do not exist
-in the CSV.
-
-Next, create an `ImportProcessor` class and define it in the `$processor` value of your `ImportAction`.
+- and an `ImportNovaAction` class that is essentially a Nova Action
 
 Here is a sample `ImportProcessor`:
 
@@ -115,19 +89,15 @@ Here is a sample `ImportProcessor`:
 
 namespace App\Nova\Imports\TestImport;
 
-use Coreproc\NovaDataSync\Jobs\ImportProcessor;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Log;
+use Coreproc\NovaDataSync\Import\Jobs\ImportProcessor;use Illuminate\Support\Facades\Log;
 
 class TestImportProcessor extends ImportProcessor
 {
-    protected function process(array $row, int $rowIndex): void
+    public static function expectedHeaders(): array
     {
-        Log::info('processing row ' . $rowIndex);
-        
-        // Put the logic to process each row in your imported CSV here
+        return ['field1', 'field2'];
     }
-
+    
     protected function rules(array $row, int $rowIndex): array
     {
         // Use Laravel validation rules to validate the values in each row.
@@ -136,8 +106,30 @@ class TestImportProcessor extends ImportProcessor
             'field2' => ['required'],
         ];
     }
+    
+    protected function process(array $row, int $rowIndex): void
+    {
+        Log::info('processing row ' . $rowIndex);
+        
+        // Put the logic to process each row in your imported CSV here
+    }
+    
+    /**
+    * Optional: The number of rows to process per chunk. If not defined, it will use the 
+    * default chunk size defined in the config file.
+    */
+    public static function chunkSize(): int
+    {
+        return 100;
+    }
 }
 ```
+
+The `rules()` method is where you can define the validation rules for each row of the CSV file. It will be passed the
+`$row` and `$rowIndex` parameters. The `$row` parameter is an array of the CSV row's data. The `$rowIndex` parameter is
+the index. Return an array of Laravel's validation rules.
+
+The expected headers are defined in the `expectedHeaders()` method. This is used to validate the headers of the CSV.
 
 The `process()` method is where you can define the logic for each row of the CSV file. It will be passed the `$row` and
 `$rowIndex` parameters. The `$row` parameter is an array of the CSV row's data. The `$rowIndex` parameter is the index.
@@ -145,11 +137,23 @@ The `process()` method is where you can define the logic for each row of the CSV
 If you throw an `Exception` inside the `process()` method, the row will be marked as failed and the exception message
 will be shown in the failed report for the Import.
 
-The `rules()` method is where you can define the validation rules for each row of the CSV file. It will be passed the
-`$row` and `$rowIndex` parameters. The `$row` parameter is an array of the CSV row's data. The `$rowIndex` parameter is
-the index. Return an array of Laravel's validation rules.
+Next, create an `ImportNovaAction` class and define the `$processor` class you just created.
 
-Next, put your `ImportAction` inside the `actions()` method of one of your Nova Resources:
+```php
+<?php
+
+namespace App\Nova\Imports\TestImport;
+
+use Coreproc\NovaDataSync\Import\Nova\Actions\ImportNovaAction;
+
+class TestImportAction extends ImportNovaAction
+{
+    // A sample processor will be shown below
+    public string $processor = TestImportProcessor::class;
+}
+```
+
+Next, put your `ImportNovaAction` inside the `actions()` method of one of your Nova Resources:
 
 ```php
 public function actions(Request $request)
@@ -164,7 +168,34 @@ It should look something like this:
 
 ![Import Action](https://raw.githubusercontent.com/coreproc/nova-data-sync/main/docs/import-action.png)
 
-#### Importing Configuration
+
+### Using the Import feature without the Nova Action
+
+If you want to use the Import feature without the Nova Action, you can still use your ImportProcessor class. Here is an
+example:
+
+```php
+use Coreproc\NovaDataSync\Import\Actions\ImportAction;
+
+// Get the filepath of the CSV file. Should be coming from the local system.
+$filepath = 'path/to/file.csv';
+
+$importProcessor = TestImportProcessor::class;
+
+$user = request()->user(); // This can be null
+
+try {
+    $importModel = ImportAction::make($importProcessor, $filepath, $user);
+} catch (Exception $e) {
+    // Handle exception
+}
+```
+
+This will dispatch the jobs necessary to handle the import. You'll also be able to see the progress of the import in the
+Nova Data Sync tool.
+
+
+### Importing Configuration
 
 You can find configuration options for the Import feature in `config/nova-data-sync.php`.
 
@@ -174,6 +205,81 @@ You can find configuration options for the Import feature in `config/nova-data-s
     'chunk_size' => 1000,
     'queue' => 'default',
 ],
+```
+
+### Exporting Data Using a Nova Action
+
+To start with creating an Export feature, you will need two create two classes that extend `ExportProcessor` and 
+`ExportNovaAction`.
+
+Here is a sample `ExportProcessor`:
+
+```php
+namespace App\Nova\Exports;
+
+use App\Models\User;
+use Coreproc\NovaDataSync\Export\Jobs\ExportProcessor;
+use Illuminate\Contracts\Database\Query\Builder;
+
+class UserExportProcessor extends ExportProcessor
+{
+    public function query(): Builder
+    {
+        return User::query();
+    }
+}
+```
+
+You can also define the `query()` method to return a query builder. This is useful if you want to export data from a
+database table.
+
+```php
+namespace App\Nova\Exports;
+
+use Coreproc\NovaDataSync\Export\Jobs\ExportProcessor;
+use DB;
+use Illuminate\Contracts\Database\Query\Builder;
+
+class UserExportProcessor extends ExportProcessor
+{
+    public function query(): Builder
+    {
+        return \DB::query()->from('users')
+            ->select([
+                'id',
+                'email',
+            ]);
+    }
+}
+```
+
+Next, create an `ExportNovaAction` class and create a `processor()` function that returns the processor class you just
+created.
+
+```php
+namespace App\Nova\Exports;
+
+use Coreproc\NovaDataSync\Export\Jobs\ExportProcessor;
+use Coreproc\NovaDataSync\Export\Nova\Action\ExportNovaAction;
+
+class UserExportAction extends ExportNovaAction
+{
+    protected function processor(): ExportProcessor
+    {
+        return new UserExportProcessor();
+    }
+}
+```
+
+Now, you can add the `ExportNovaAction` to your Nova Resource:
+
+```php
+public function actions(Request $request)
+{
+    return [
+        new UserExportAction(),
+    ];
+}
 ```
 
 ### User Configuration
@@ -196,5 +302,5 @@ This can be done in the `config/nova-data-sync.php` file.
 ],
 ```
 
-By default, this already has the `App\Nova\User::class` resource. You can add more user resources like 
+By default, this already has the `App\Nova\User::class` resource. You can add more user resources like
 `App\Nova\BackendUser` as needed.

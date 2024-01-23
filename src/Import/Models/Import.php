@@ -1,6 +1,6 @@
 <?php
 
-namespace Coreproc\NovaDataSync\Models;
+namespace Coreproc\NovaDataSync\Import\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;

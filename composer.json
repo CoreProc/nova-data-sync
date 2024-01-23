@@ -8,10 +8,11 @@
   "license": "MIT",
   "require": {
     "php": "^7.3|^8.0",
+    "anourvalar/eloquent-serialize": "^1.0",
     "ebess/advanced-nova-media-library": "^4.1",
     "flatroy/nova-progressbar-field": "^0.0.6",
     "laravel/horizon": "^5.21",
-    "spatie/laravel-medialibrary": "^10.0",
+    "spatie/laravel-medialibrary": "^10.0|^11.0",
     "spatie/simple-excel": "^3.3"
   },
   "autoload": {

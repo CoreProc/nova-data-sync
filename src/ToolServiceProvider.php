@@ -2,8 +2,9 @@
 
 namespace Coreproc\NovaDataSync;
 
+use Coreproc\NovaDataSync\Export\Nova\Export;
 use Coreproc\NovaDataSync\Http\Middleware\Authorize;
-use Coreproc\NovaDataSync\Nova\Import;
+use Coreproc\NovaDataSync\Import\Nova\Import;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Nova\Events\ServingNova;
@@ -32,7 +33,10 @@ class ToolServiceProvider extends ServiceProvider
         ], 'nova-data-sync-config');
 
         Nova::serving(function (ServingNova $event) {
-            Nova::resources([Import::class]);
+            Nova::resources([
+                Import::class,
+                Export::class,
+            ]);
         });
     }
 

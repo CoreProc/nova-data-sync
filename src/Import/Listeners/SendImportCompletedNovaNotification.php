@@ -1,8 +1,8 @@
 <?php
 
-namespace Coreproc\NovaDataSync\Listeners;
+namespace Coreproc\NovaDataSync\Import\Listeners;
 
-use Coreproc\NovaDataSync\Events\ImportCompletedEvent;
+use Coreproc\NovaDataSync\Import\Events\ImportCompletedEvent;
 use Laravel\Nova\Notifications\NovaNotification;
 
 class SendImportCompletedNovaNotification

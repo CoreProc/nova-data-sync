@@ -1,11 +1,11 @@
 <?php
 
-namespace Coreproc\NovaDataSync\Jobs;
+namespace Coreproc\NovaDataSync\Import\Jobs;
 
 use Coreproc\NovaDataSync\Enum\Status;
-use Coreproc\NovaDataSync\Events\ImportCompletedEvent;
-use Coreproc\NovaDataSync\Events\ImportStartedEvent;
-use Coreproc\NovaDataSync\Models\Import;
+use Coreproc\NovaDataSync\Import\Events\ImportCompletedEvent;
+use Coreproc\NovaDataSync\Import\Events\ImportStartedEvent;
+use Coreproc\NovaDataSync\Import\Models\Import;
 use Illuminate\Bus\Batch;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
@@ -55,10 +55,7 @@ class BulkImportProcessor implements ShouldQueue
         $mediaContent = stream_get_contents($media->stream());
         file_put_contents($filepath, $mediaContent);
 
-        $readerRows = SimpleExcelReader::create(
-            $filepath,
-            'csv',
-        )->getRows();
+        $readerRows = SimpleExcelReader::create($filepath, 'csv')->getRows();
 
         $chunks = $readerRows->chunk($this->import->processor::chunkSize());
 
@@ -67,6 +64,24 @@ class BulkImportProcessor implements ShouldQueue
         // Chunk these rows then process it according to the import process class
         foreach ($chunks as $index => $rows) {
             $jobs[] = new $this->import->processor($this->import, $rows, $index + 1);
+        }
+
+        if (empty($jobs)) {
+            Log::debug('[BulkImportProcessor] No jobs to dispatch. Marking import as completed.');
+
+            $this->import->update([
+                'status' => Status::COMPLETED,
+                'completed_at' => now(),
+            ]);
+
+            // Remove the import file from local storage
+            if (file_exists($filepath)) {
+                unlink($filepath);
+            }
+
+            event(new ImportCompletedEvent($this->import));
+
+            return;
         }
 
         Log::debug('[BulkImportProcessor] Dispatching jobs...', [$jobs]);
@@ -91,8 +106,6 @@ class BulkImportProcessor implements ShouldQueue
                 // Dispatch job to collate failed chunks to one file
                 dispatch(new CollateFailedChunks($import))
                     ->onQueue(config('nova-data-sync.imports.queue', 'default'));
-
-                event(new ImportCompletedEvent($import));
             })
             ->allowFailures()
             ->name($this->import->id . '-import')

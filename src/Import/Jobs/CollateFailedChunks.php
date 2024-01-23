@@ -1,8 +1,8 @@
 <?php
 
-namespace Coreproc\NovaDataSync\Jobs;
+namespace Coreproc\NovaDataSync\Import\Jobs;
 
-use Coreproc\NovaDataSync\Models\Import;
+use Coreproc\NovaDataSync\Import\Models\Import;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -52,8 +52,11 @@ class CollateFailedChunks implements ShouldQueue
         $failedImportsFilePath = storage_path("app/import-{$this->import->id}-failed.csv");
         $failedImportWriter = SimpleExcelWriter::create($failedImportsFilePath);
 
-        $failedChunksMedia->each(function (Media $media) use ($failedImportWriter) {
+        $hasFailedRows = false;
+
+        $failedChunksMedia->each(function (Media $media) use ($failedImportWriter, &$hasFailedRows) {
             Log::debug('[ProcessFailedChunks] Processing failed chunk media', [
+                'import_id' => $this->import->id,
                 'media_id' => $media->id,
             ]);
 
@@ -62,8 +65,13 @@ class CollateFailedChunks implements ShouldQueue
             $mediaContent = stream_get_contents($media->stream());
             file_put_contents($filepath, $mediaContent);
 
-            // Read the file and write it to the failed import file
-            $failedImportWriter->addRows(SimpleExcelReader::create($filepath)->getRows());
+            $failedRows = SimpleExcelReader::create($filepath)->getRows();
+
+            if ($failedRows->count() > 0) {
+                $hasFailedRows = true;
+                // Read the file and write it to the failed import file
+                $failedImportWriter->addRows($failedRows);
+            }
 
             // Delete the file from the local storage
             unlink($filepath);
@@ -73,6 +81,17 @@ class CollateFailedChunks implements ShouldQueue
         });
 
         $failedImportWriter->close();
+
+        // Delete all failed media chunks
+        $this->import->clearMediaCollection('failed-chunks');
+
+        if (!$hasFailedRows) {
+            Log::debug('[ProcessFailedChunks] No failed rows found', [
+                'import_id' => $this->import->id,
+            ]);
+            unlink($failedImportsFilePath);
+            return;
+        }
 
         $this->import->addMedia($failedImportsFilePath)
             ->toMediaCollection('failed', config('nova-data-sync.imports.disk'));
