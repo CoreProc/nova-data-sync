@@ -172,22 +172,26 @@ It should look something like this:
 ### Using the Import feature without the Nova Action
 
 If you want to use the Import feature without the Nova Action, you can still use your ImportProcessor class. Here is an
-example:
+example of grabbing a file from S3 and importing it:
 
 ```php
 use Coreproc\NovaDataSync\Import\Actions\ImportAction;
 
-// Get the filepath of the CSV file. Should be coming from the local system.
-$filepath = 'path/to/file.csv';
+// Get the file from s3
+$file = Storage::disk('s3')->get('file-for-import.csv');
 
-$importProcessor = TestImportProcessor::class;
+// Put it in your local storage
+Storage::disk('local')->put('file-for-import.csv', $file);
 
-$user = request()->user(); // This can be null
+// Get the filepath of the file we just saved
+$filePath = Storage::disk('local')->path('file-for-import.csv');
 
 try {
-    $importModel = ImportAction::make($importProcessor, $filepath, $user);
+    // Use ImportAction::make() to dispatch the jobs necessary to handle the import
+    ImportAction::make(TestImportProcessor::class, $filePath);
 } catch (Exception $e) {
     // Handle exception
+    \Log::error($e->getMessage());
 }
 ```
 
