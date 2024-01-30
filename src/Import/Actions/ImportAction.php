@@ -22,8 +22,7 @@ class ImportAction
      */
     public static function make(string $processor, string $filepath, ?Authenticatable $user = null): Import
     {
-        $excelReader = SimpleExcelReader::create($filepath, 'csv')
-            ->formatHeadersUsing(fn($header) => Str::snake($header));
+        $excelReader = SimpleExcelReader::create($filepath, 'csv');
 
         if (!is_subclass_of($processor, ImportProcessor::class) && $processor !== ImportProcessor::class) {
             throw new InvalidArgumentException('Class name must be a subclass of ' . ImportProcessor::class);
