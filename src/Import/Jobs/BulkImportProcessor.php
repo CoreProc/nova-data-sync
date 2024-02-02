@@ -15,7 +15,6 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Log;
-use Spatie\SimpleExcel\SimpleExcelReader;
 use Throwable;
 
 class BulkImportProcessor implements ShouldQueue
@@ -55,15 +54,15 @@ class BulkImportProcessor implements ShouldQueue
         $mediaContent = stream_get_contents($media->stream());
         file_put_contents($filepath, $mediaContent);
 
-        $readerRows = SimpleExcelReader::create($filepath, 'csv')->getRows();
-
-        $chunks = $readerRows->chunk($this->import->processor::chunkSize());
-
         $jobs = [];
+        $skip = 0;
+        $take = $this->import->processor::chunkSize();
 
         // Chunk these rows then process it according to the import process class
-        foreach ($chunks as $index => $rows) {
-            $jobs[] = new $this->import->processor($this->import, $rows, $index + 1);
+        while ($skip < $this->import->file_total_rows) {
+            $jobs[] = new $this->import->processor($this->import, $filepath, $skip, $take);
+
+            $skip += $take;
         }
 
         if (empty($jobs)) {

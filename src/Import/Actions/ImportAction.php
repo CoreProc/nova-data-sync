@@ -35,8 +35,6 @@ class ImportAction
             throw new InvalidArgumentException('File headers do not match the expected headers.');
         }
 
-        $excelReader->getRows()->count();
-
         /** @var Import $import */
         $import = Import::query()->create([
             'user_id' => $user?->id ?? null,

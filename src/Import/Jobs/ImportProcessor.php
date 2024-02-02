@@ -10,10 +10,10 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\LazyCollection;
 use Illuminate\Validation\ValidationException;
 use Spatie\MediaLibrary\MediaCollections\Exceptions\FileDoesNotExist;
 use Spatie\MediaLibrary\MediaCollections\Exceptions\FileIsTooBig;
+use Spatie\SimpleExcel\SimpleExcelReader;
 use Spatie\SimpleExcel\SimpleExcelWriter;
 use Str;
 use Throwable;
@@ -31,9 +31,10 @@ abstract class ImportProcessor implements ShouldQueue
     protected string $className;
 
     public function __construct(
-        protected Import         $import,
-        protected LazyCollection $rows,
-        protected int            $index
+        protected Import $import,
+        protected string $filePath,
+        protected int    $skip,
+        protected int    $take
     )
     {
         $this->queue = config('nova-data-sync.imports.queue', 'default');
@@ -63,15 +64,24 @@ abstract class ImportProcessor implements ShouldQueue
      */
     public function handle(): void
     {
-        Log::debug('[' . $this->className . '] Starting import...');
+        Log::debug('[' . $this->className . '] Starting import...', [
+            'import_id' => $this->import->id,
+            'file_path' => $this->filePath,
+            'skip' => $this->skip,
+            'take' => $this->take,
+        ]);
 
         // Initialize failed imports report
         $this->initializeFailedImportsReport();
 
-        $chunkIndex = $this->index;
+        $excelReader = SimpleExcelReader::create($this->filePath, 'csv');
 
-        $this->rows->each(function ($row, $index) use ($chunkIndex) {
-            $rowIndex = $chunkIndex + $index + 1;
+        $rows = $excelReader->skip($this->skip)->take($this->take)->getRows();
+
+        $skip = $this->skip;
+
+        $rows->each(function ($row, $index) use ($skip) {
+            $rowIndex = $skip + $index;
 
             try {
                 $this->validateRow($row, $rowIndex);
@@ -81,6 +91,8 @@ abstract class ImportProcessor implements ShouldQueue
                 $this->incrementTotalRowsFailed($row, $rowIndex, $e->getMessage());
             }
         });
+
+        $excelReader->close();
 
         $this->failedImportsReportWriter->close();
 
