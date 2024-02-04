@@ -42,7 +42,6 @@ class ImportAction
             'filename' => basename($filepath),
             'status' => Status::PENDING,
             'processor' => $processor,
-            'file_total_rows' => $excelReader->getRows()->count(),
         ]);
 
         $import->addMedia($filepath)->toMediaCollection('file');

@@ -15,6 +15,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Log;
+use Spatie\SimpleExcel\SimpleExcelReader;
 use Throwable;
 
 class BulkImportProcessor implements ShouldQueue
@@ -40,11 +41,6 @@ class BulkImportProcessor implements ShouldQueue
             'import_processor' => $this->import->processor,
         ]);
 
-        $this->import->update([
-            'status' => Status::IN_PROGRESS,
-            'started_at' => now(),
-        ]);
-
         event(new ImportStartedEvent($this->import));
 
         $media = $this->import->getFirstMedia('file');
@@ -53,6 +49,16 @@ class BulkImportProcessor implements ShouldQueue
         $filepath = storage_path('app/' . $media->uuid);
         $mediaContent = stream_get_contents($media->stream());
         file_put_contents($filepath, $mediaContent);
+
+        $excelReader = SimpleExcelReader::create($filepath, 'csv');
+
+        $this->import->update([
+            'status' => Status::IN_PROGRESS,
+            'started_at' => now(),
+            'file_total_rows' => $excelReader->getRows()->count(),
+        ]);
+
+        $excelReader->close();
 
         $jobs = [];
         $skip = 0;
@@ -68,17 +74,7 @@ class BulkImportProcessor implements ShouldQueue
         if (empty($jobs)) {
             Log::debug('[BulkImportProcessor] No jobs to dispatch. Marking import as completed.');
 
-            $this->import->update([
-                'status' => Status::COMPLETED,
-                'completed_at' => now(),
-            ]);
-
-            // Remove the import file from local storage
-            if (file_exists($filepath)) {
-                unlink($filepath);
-            }
-
-            event(new ImportCompletedEvent($this->import));
+            $this->completeImport($filepath);
 
             return;
         }
@@ -92,15 +88,7 @@ class BulkImportProcessor implements ShouldQueue
                 Log::debug('[BulkImportProcessor] Batch finished');
             })
             ->finally(function (Batch $batch) use ($import, $filepath) {
-                $import->update([
-                    'status' => Status::COMPLETED,
-                    'completed_at' => now(),
-                ]);
-
-                // Remove the import file from local storage
-                if (file_exists($filepath)) {
-                    unlink($filepath);
-                }
+                $this->completeImport($filepath);
 
                 // Dispatch job to collate failed chunks to one file
                 dispatch(new CollateFailedChunks($import))
@@ -110,5 +98,20 @@ class BulkImportProcessor implements ShouldQueue
             ->name($this->import->id . '-import')
             ->onQueue(config('nova-data-sync.imports.queue', 'default'))
             ->dispatch();
+    }
+
+    private function completeImport(string $filepath): void
+    {
+        // Remove the import file from local storage
+        if (file_exists($filepath)) {
+            unlink($filepath);
+        }
+
+        $this->import->update([
+            'status' => Status::COMPLETED,
+            'completed_at' => now(),
+        ]);
+
+        event(new ImportCompletedEvent($this->import));
     }
 }
