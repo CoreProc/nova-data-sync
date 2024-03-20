@@ -26,6 +26,14 @@ abstract class ExportProcessor implements ShouldQueue
     abstract public function query(): Builder;
 
     /**
+     * Extend this method to format the item before exporting
+     */
+    public function formatRow($row): array
+    {
+        return $row;
+    }
+
+    /**
      * @throws Throwable
      */
     public function handle(): void

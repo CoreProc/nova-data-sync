@@ -62,7 +62,7 @@ class ExportToCsv implements ShouldQueue
                 }
             }
 
-            $csvWriter->addRow($item);
+            $csvWriter->addRow($this->processor->formatRow($item));
         });
 
         $csvWriter->close();
