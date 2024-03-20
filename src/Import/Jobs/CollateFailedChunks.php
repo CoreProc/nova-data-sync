@@ -3,6 +3,7 @@
 namespace Coreproc\NovaDataSync\Import\Jobs;
 
 use Coreproc\NovaDataSync\Import\Models\Import;
+use Exception;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -36,14 +37,14 @@ class CollateFailedChunks implements ShouldQueue
      */
     public function handle(): void
     {
-        Log::debug('[ProcessFailedChunks] Processing failed chunks', [
+        Log::debug('[CollateFailedChunks] Processing failed chunks', [
             'import_id' => $this->import->id,
         ]);
 
         $failedChunksMedia = $this->import->getMedia('failed-chunks');
 
         if ($failedChunksMedia->count() === 0) {
-            Log::debug('[ProcessFailedChunks] No failed chunks found', [
+            Log::debug('[CollateFailedChunks] No failed chunks found', [
                 'import_id' => $this->import->id,
             ]);
             return;
@@ -55,7 +56,7 @@ class CollateFailedChunks implements ShouldQueue
         $hasFailedRows = false;
 
         $failedChunksMedia->each(function (Media $media) use ($failedImportWriter, &$hasFailedRows) {
-            Log::debug('[ProcessFailedChunks] Processing failed chunk media', [
+            Log::debug('[CollateFailedChunks] Processing failed chunk media', [
                 'import_id' => $this->import->id,
                 'media_id' => $media->id,
             ]);
@@ -77,7 +78,15 @@ class CollateFailedChunks implements ShouldQueue
             unlink($filepath);
 
             // Delete the media from the import
-            $media->delete();
+            try {
+                $media->delete();
+            } catch (Exception $e) {
+                Log::warning('[CollateFailedChunks] Failed to delete failed chunk media', [
+                    'import_id' => $this->import->id,
+                    'media_id' => $media->id,
+                    'exception' => $e->getMessage(),
+                ]);
+            }
         });
 
         $failedImportWriter->close();
@@ -86,7 +95,7 @@ class CollateFailedChunks implements ShouldQueue
         $this->import->clearMediaCollection('failed-chunks');
 
         if (!$hasFailedRows) {
-            Log::debug('[ProcessFailedChunks] No failed rows found', [
+            Log::debug('[CollateFailedChunks] No failed rows found', [
                 'import_id' => $this->import->id,
             ]);
             unlink($failedImportsFilePath);
@@ -96,7 +105,7 @@ class CollateFailedChunks implements ShouldQueue
         $this->import->addMedia($failedImportsFilePath)
             ->toMediaCollection('failed', config('nova-data-sync.imports.disk'));
 
-        Log::debug('[ProcessFailedChunks] Finished processing failed chunks', [
+        Log::debug('[CollateFailedChunks] Finished processing failed chunks', [
             'import_id' => $this->import->id,
         ]);
     }
