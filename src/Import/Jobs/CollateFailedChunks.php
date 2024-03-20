@@ -68,7 +68,7 @@ class CollateFailedChunks implements ShouldQueue
 
             $failedRows = SimpleExcelReader::create($filepath)->getRows();
 
-            if ($failedRows->count() > 0) {
+            if ($failedRows->isNotEmpty()) {
                 $hasFailedRows = true;
                 // Read the file and write it to the failed import file
                 $failedImportWriter->addRows($failedRows);
