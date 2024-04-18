@@ -51,6 +51,15 @@ abstract class ExportProcessor implements ShouldQueue
 
         $export = $this->initializeExport($totalRecords);
 
+        if ($totalRecords <= 0) {
+            Log::info('[' . self::class . '] No records to export');
+            $export->update([
+                'status' => Status::COMPLETED->value,
+                'completed_at' => now(),
+            ]);
+            return;
+        }
+
         for ($page = 1; $page <= $totalPages; $page++) {
             $jobs[] = new ExportToCsv($this, $page, $perPage, $batchUuid);
         }
