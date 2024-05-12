@@ -103,6 +103,8 @@ class BulkImportProcessor implements ShouldQueue
                     unlink($filepath);
                 }
 
+                event(new ImportCompletedEvent($this->import));
+
                 // Dispatch job to collate failed chunks to one file
                 dispatch(new CollateFailedChunks($import))
                     ->onQueue(config('nova-data-sync.imports.queue', 'default'));
