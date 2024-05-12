@@ -103,7 +103,7 @@ class BulkImportProcessor implements ShouldQueue
                     unlink($filepath);
                 }
 
-                event(new ImportCompletedEvent($this->import));
+                event(new ImportCompletedEvent($import));
 
                 // Dispatch job to collate failed chunks to one file
                 dispatch(new CollateFailedChunks($import))
