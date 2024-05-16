@@ -11,6 +11,12 @@ class Import extends Model implements HasMedia
 {
     use InteractsWithMedia;
 
+    public function __construct(array $attributes = [])
+    {
+        parent::__construct($attributes);
+        $this->setTable(config('nova-data-sync.imports.table_name', 'imports'));
+    }
+
     protected $fillable = [
         'user_id',
         'user_type',

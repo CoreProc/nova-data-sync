@@ -11,7 +11,7 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('exports', function (Blueprint $table) {
+        Schema::create(config('nova-data-sync.exports.table_name', 'exports'), function (Blueprint $table) {
             $table->id();
             $table->nullableMorphs('user');
             $table->string('filename')->nullable();

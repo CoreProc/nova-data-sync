@@ -27,6 +27,12 @@ class Export extends Model implements HasMedia
         'completed_at' => 'datetime',
     ];
 
+    public function __construct(array $attributes = [])
+    {
+        parent::__construct($attributes);
+        $this->setTable(config('nova-data-sync.exports.table_name', 'exports'));
+    }
+
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection('file')->singleFile();
