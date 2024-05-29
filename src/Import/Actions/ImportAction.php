@@ -7,7 +7,6 @@ use Coreproc\NovaDataSync\Import\Jobs\BulkImportProcessor;
 use Coreproc\NovaDataSync\Import\Jobs\ImportProcessor;
 use Coreproc\NovaDataSync\Import\Models\Import;
 use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Spatie\MediaLibrary\MediaCollections\Exceptions\FileDoesNotExist;
 use Spatie\MediaLibrary\MediaCollections\Exceptions\FileIsTooBig;
@@ -35,7 +34,6 @@ class ImportAction
             throw new InvalidArgumentException('File headers do not match the expected headers.');
         }
 
-        /** @var Import $import */
         $import = Import::query()->create([
             'user_id' => $user?->id ?? null,
             'user_type' => !empty($user) ? get_class($user) : null,

@@ -10,7 +10,6 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\LazyCollection;
 use Illuminate\Validation\ValidationException;
 use Spatie\MediaLibrary\MediaCollections\Exceptions\FileDoesNotExist;
 use Spatie\MediaLibrary\MediaCollections\Exceptions\FileIsTooBig;
@@ -33,9 +32,9 @@ abstract class ImportProcessor implements ShouldQueue
     protected int $failedCount = 0;
 
     public function __construct(
-        protected Import         $import,
-        protected string         $csvFilePath,
-        protected int            $index
+        protected Import $import,
+        protected string $csvFilePath,
+        protected int    $index
     )
     {
         $this->queue = config('nova-data-sync.imports.queue', 'default');
@@ -69,6 +68,13 @@ abstract class ImportProcessor implements ShouldQueue
 
         // Initialize failed imports report
         $this->initializeFailedImportsReport();
+
+        // Check if csvfilepath exists, if not, get the media content and save the csvfilepath locally
+        if (!file_exists($this->csvFilePath)) {
+            $media = $this->import->getFirstMedia('file');
+            $mediaContent = stream_get_contents($media->stream());
+            file_put_contents($this->csvFilePath, $mediaContent);
+        }
 
         $readerRows = SimpleExcelReader::create($this->csvFilePath, 'csv')->getRows();
 
