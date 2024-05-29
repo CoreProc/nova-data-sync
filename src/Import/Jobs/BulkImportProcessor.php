@@ -55,15 +55,15 @@ class BulkImportProcessor implements ShouldQueue
         $mediaContent = stream_get_contents($media->stream());
         file_put_contents($filepath, $mediaContent);
 
-        $readerRows = SimpleExcelReader::create($filepath, 'csv')->getRows();
-
-        $chunks = $readerRows->chunk($this->import->processor::chunkSize());
+        // Grab the number of rows
+        $rowsCount = $this->import->file_total_rows;
+        $chunkSize = $this->import->processor::chunkSize();
 
         $jobs = [];
 
-        // Chunk these rows then process it according to the import process class
-        foreach ($chunks as $index => $rows) {
-            $jobs[] = new $this->import->processor($this->import, $rows, $index + 1);
+        // Chunk the rows count and create a job for each
+        for ($rowIndex = 0; $rowIndex < $rowsCount; $rowIndex += $chunkSize) {
+            $jobs[] = new $this->import->processor($this->import, $filepath, $rowIndex);
         }
 
         if (empty($jobs)) {

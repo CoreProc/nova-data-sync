@@ -10,10 +10,10 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\LazyCollection;
 use Illuminate\Validation\ValidationException;
 use Spatie\MediaLibrary\MediaCollections\Exceptions\FileDoesNotExist;
 use Spatie\MediaLibrary\MediaCollections\Exceptions\FileIsTooBig;
+use Spatie\SimpleExcel\SimpleExcelReader;
 use Spatie\SimpleExcel\SimpleExcelWriter;
 use Str;
 use Throwable;
@@ -27,13 +27,14 @@ abstract class ImportProcessor implements ShouldQueue
     use SerializesModels;
 
     protected SimpleExcelWriter $failedImportsReportWriter;
-
     protected string $className;
+    protected int $processedCount = 0;
+    protected int $failedCount = 0;
 
     public function __construct(
-        protected Import         $import,
-        protected LazyCollection $rows,
-        protected int            $index
+        protected Import $import,
+        protected string $csvFilePath,
+        protected int    $index
     )
     {
         $this->queue = config('nova-data-sync.imports.queue', 'default');
@@ -68,19 +69,38 @@ abstract class ImportProcessor implements ShouldQueue
         // Initialize failed imports report
         $this->initializeFailedImportsReport();
 
-        $chunkIndex = $this->index;
+        // Check if csvfilepath exists, if not, get the media content and save the csvfilepath locally
+        if (!file_exists($this->csvFilePath)) {
+            $media = $this->import->getFirstMedia('file');
+            $mediaContent = stream_get_contents($media->stream());
+            file_put_contents($this->csvFilePath, $mediaContent);
+        }
 
-        $this->rows->each(function ($row, $index) use ($chunkIndex) {
-            $rowIndex = $chunkIndex + $index + 1;
+        $readerRows = SimpleExcelReader::create($this->csvFilePath, 'csv')->getRows();
+
+        $rows = $readerRows->skip($this->index)->take(static::chunkSize());
+
+        $rows->each(function ($row, $index) {
+            $rowIndex = $index + 1;
 
             try {
                 $this->validateRow($row, $rowIndex);
                 $this->process($row, $rowIndex);
-                $this->incrementTotalRowsProcessed($rowIndex);
+                $this->incrementTotalRowsProcessed();
             } catch (Throwable $e) {
                 $this->incrementTotalRowsFailed($row, $rowIndex, $e->getMessage());
             }
         });
+
+        // Ensure any remaining increments are saved
+        if ($this->processedCount > 0) {
+            $this->import->increment('total_rows_processed', $this->processedCount);
+            $this->processedCount = 0;
+        }
+        if ($this->failedCount > 0) {
+            $this->import->increment('total_rows_failed', $this->failedCount);
+            $this->failedCount = 0;
+        }
 
         $this->failedImportsReportWriter->close();
 
@@ -89,11 +109,14 @@ abstract class ImportProcessor implements ShouldQueue
             ->toMediaCollection('failed-chunks', config('nova-data-sync.imports.disk'));
     }
 
-    protected function incrementTotalRowsProcessed($rowIndex): void
+    protected function incrementTotalRowsProcessed(): void
     {
-        Log::debug("[{$this->className}] Processed row {$rowIndex}");
-
-        $this->import->increment('total_rows_processed');
+        $this->processedCount++;
+        if ($this->processedCount >= 100) {
+            Log::debug("[{$this->className}] Processed 100 rows, committing to database...");
+            $this->import->increment('total_rows_processed', $this->processedCount);
+            $this->processedCount = 0;
+        }
     }
 
     protected function incrementTotalRowsFailed($row, $rowIndex, $message): void
@@ -108,9 +131,14 @@ abstract class ImportProcessor implements ShouldQueue
 
         $this->failedImportsReportWriter->addRow($row);
 
-        $this->import->increment('total_rows_failed');
+        $this->failedCount++;
+        if ($this->failedCount >= 100) {
+            Log::debug("[{$this->className}] Failed 100 rows, committing to database...");
+            $this->import->increment('total_rows_failed', $this->failedCount);
+            $this->failedCount = 0;
+        }
 
-        $this->incrementTotalRowsProcessed($rowIndex);
+        $this->incrementTotalRowsProcessed();
     }
 
     private function initializeFailedImportsReport(): void
