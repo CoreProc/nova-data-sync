@@ -4,6 +4,7 @@ namespace Coreproc\NovaDataSync\Import\Nova;
 
 use App\Nova\Resource;
 use Coreproc\NovaDataSync\Enum\Status as StatusEnum;
+use Coreproc\NovaDataSync\Import\Nova\Actions\ImportStopAction;
 use Ebess\AdvancedNovaMediaLibrary\Fields\Files;
 use Flatroy\FieldProgressbar\FieldProgressbar;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -158,7 +159,8 @@ class Import extends Resource
     public function actions(NovaRequest $request): array
     {
         return [
-            //
+            (new ImportStopAction())
+                ->canSee(fn() => in_array($this->status, [StatusEnum::PENDING->value, StatusEnum::IN_PROGRESS->value])),
         ];
     }
 

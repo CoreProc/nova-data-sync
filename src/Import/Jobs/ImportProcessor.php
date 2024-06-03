@@ -2,6 +2,7 @@
 
 namespace Coreproc\NovaDataSync\Import\Jobs;
 
+use Coreproc\NovaDataSync\Enum\Status;
 use Coreproc\NovaDataSync\Import\Models\Import;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
@@ -9,6 +10,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Spatie\MediaLibrary\MediaCollections\Exceptions\FileDoesNotExist;
@@ -64,6 +66,10 @@ abstract class ImportProcessor implements ShouldQueue
      */
     public function handle(): void
     {
+        if ($this->shouldQuit()) {
+            return;
+        }
+
         Log::debug('[' . $this->className . '] Starting import...');
 
         // Initialize failed imports report
@@ -81,6 +87,10 @@ abstract class ImportProcessor implements ShouldQueue
         $rows = $readerRows->skip($this->index)->take(static::chunkSize());
 
         $rows->each(function ($row, $index) {
+            if ($this->shouldQuit()) {
+                return false;
+            }
+
             $rowIndex = $index + 1;
 
             try {
@@ -90,6 +100,8 @@ abstract class ImportProcessor implements ShouldQueue
             } catch (Throwable $e) {
                 $this->incrementTotalRowsFailed($row, $rowIndex, $e->getMessage());
             }
+
+            return true;
         });
 
         // Ensure any remaining increments are saved
@@ -169,5 +181,17 @@ abstract class ImportProcessor implements ShouldQueue
         }
 
         return true;
+    }
+
+    protected function shouldQuit(): bool
+    {
+        // Check the status of Import model to see if it is still in progress every 10 seconds,
+        // if not, return false. Check using cache to avoid hitting the database every time
+        return Cache::remember('nova-data-sync-import-' . $this->import->id . '-should-stop', now()->addSeconds(10),
+            function () {
+                $this->import->refresh();
+                return $this->import->status !== Status::IN_PROGRESS->value;
+            }
+        );
     }
 }

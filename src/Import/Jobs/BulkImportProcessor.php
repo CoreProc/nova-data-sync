@@ -15,7 +15,6 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Log;
-use Spatie\SimpleExcel\SimpleExcelReader;
 use Throwable;
 
 class BulkImportProcessor implements ShouldQueue
@@ -36,7 +35,21 @@ class BulkImportProcessor implements ShouldQueue
      */
     public function handle(): void
     {
-        Log::debug('[BulkImportProcessor] Starting bulk import...', [
+        $this->import->refresh();
+
+        if ($this->import->status === Status::STOPPED->value) {
+            Log::info('[BulkImportProcessor] Import was stopped. Marking import as completed.', [
+                'import_id' => $this->import->id,
+                'import_processor' => $this->import->processor,
+            ]);
+            $this->import->update([
+                'completed_at' => now(),
+            ]);
+
+            return;
+        }
+
+        Log::info('[BulkImportProcessor] Starting bulk import...', [
             'import_id' => $this->import->id,
             'import_processor' => $this->import->processor,
         ]);
@@ -93,10 +106,20 @@ class BulkImportProcessor implements ShouldQueue
                 Log::debug('[BulkImportProcessor] Batch finished');
             })
             ->finally(function (Batch $batch) use ($import, $filepath) {
-                $import->update([
-                    'status' => Status::COMPLETED,
-                    'completed_at' => now(),
-                ]);
+
+                $import->refresh();
+
+                if ($import->status === Status::STOPPED->value) {
+                    Log::debug('[BulkImportProcessor] Import was stopped. Marking import as completed.');
+                    $import->update([
+                        'completed_at' => now(),
+                    ]);
+                } else {
+                    $import->update([
+                        'status' => Status::COMPLETED,
+                        'completed_at' => now(),
+                    ]);
+                }
 
                 // Remove the import file from local storage
                 if (file_exists($filepath)) {
