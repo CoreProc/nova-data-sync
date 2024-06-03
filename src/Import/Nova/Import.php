@@ -55,7 +55,10 @@ class Import extends Resource
 
             Status::make('Status')
                 ->loadingWhen([StatusEnum::PENDING->value, StatusEnum::IN_PROGRESS->value])
-                ->failedWhen([StatusEnum::FAILED->value]),
+                ->failedWhen([
+                    StatusEnum::STOPPED->value,
+                    StatusEnum::FAILED->value,
+                ]),
 
             MorphTo::make('Uploaded By', 'user')
                 ->types(config('nova-data-sync.nova_resources.users'))
