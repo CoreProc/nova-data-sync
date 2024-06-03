@@ -163,7 +163,9 @@ class Import extends Resource
     {
         return [
             (new ImportStopAction())
-                ->canSee(fn() => in_array($this->status, [StatusEnum::PENDING->value, StatusEnum::IN_PROGRESS->value])),
+                ->canRun(function ($request, $model) {
+                    return in_array($model->status, [StatusEnum::PENDING->value, StatusEnum::IN_PROGRESS->value]);
+                }),
         ];
     }
 
