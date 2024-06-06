@@ -109,9 +109,13 @@ class BulkImportProcessor implements ShouldQueue
 
                 $import->refresh();
 
-                if ($import->status === Status::STOPPED->value) {
-                    Log::debug('[BulkImportProcessor] Import was stopped. Marking import as completed.');
+                if (in_array($import->status, [Status::STOPPED->value, Status::STOPPING->value])) {
+                    Log::info('[BulkImportProcessor] Import was stopped.', [
+                        'import_id' => $import->id,
+                        'import_processor' => $import->processor,
+                    ]);
                     $import->update([
+                        'status' => Status::STOPPED,
                         'completed_at' => now(),
                     ]);
                 } else {
@@ -120,6 +124,11 @@ class BulkImportProcessor implements ShouldQueue
                         'completed_at' => now(),
                     ]);
                 }
+
+                Log::info('[BulkImportProcessor] Import finished.', [
+                    'import_id' => $import->id,
+                    'import_processor' => $import->processor,
+                ]);
 
                 // Remove the import file from local storage
                 if (file_exists($filepath)) {

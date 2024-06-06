@@ -40,8 +40,7 @@ abstract class ImportProcessor implements ShouldQueue
     )
     {
         $this->queue = config('nova-data-sync.imports.queue', 'default');
-        $this->className = self::class;
-        Log::debug('[' . $this->className . '] Initialized');
+        $this->className = static::class;
     }
 
     abstract public static function expectedHeaders(): array;
@@ -70,7 +69,9 @@ abstract class ImportProcessor implements ShouldQueue
             return;
         }
 
-        Log::debug('[' . $this->className . '] Starting import...');
+        Log::info("[$this->className] Import processor started", [
+            'import_id' => $this->import->id,
+        ]);
 
         // Initialize failed imports report
         $this->initializeFailedImportsReport();
@@ -104,15 +105,7 @@ abstract class ImportProcessor implements ShouldQueue
             return true;
         });
 
-        // Ensure any remaining increments are saved
-        if ($this->processedCount > 0) {
-            $this->import->increment('total_rows_processed', $this->processedCount);
-            $this->processedCount = 0;
-        }
-        if ($this->failedCount > 0) {
-            $this->import->increment('total_rows_failed', $this->failedCount);
-            $this->failedCount = 0;
-        }
+        $this->finish();
 
         $this->failedImportsReportWriter->close();
 
@@ -185,13 +178,49 @@ abstract class ImportProcessor implements ShouldQueue
 
     protected function shouldQuit(): bool
     {
-        // Check the status of Import model to see if it is still in progress every 10 seconds,
-        // if not, return false. Check using cache to avoid hitting the database every time
-        return Cache::remember('nova-data-sync-import-' . $this->import->id . '-should-stop', now()->addSeconds(10),
+        // Only check every x processed rows
+        if ($this->processedCount % $this->rowsToProcessBeforeCheckingForQuit() !== 0) {
+            return false;
+        }
+
+        $shouldQuit = Cache::remember(
+            'nova-data-sync-import-' . $this->import->id . '-should-stop',
+            now()->addSeconds($this->secondsBeforeCheckingForQuit()),
             function () {
                 $this->import->refresh();
-                return $this->import->status !== Status::IN_PROGRESS->value;
+                return in_array($this->import->status, [Status::STOPPING->value, Status::STOPPED->value]);
             }
         );
+
+        if ($shouldQuit) {
+            Log::info('[' . static::class . '] Stopping import processor', [
+                'import_id' => $this->import->id,
+            ]);
+        }
+
+        return $shouldQuit;
+    }
+
+    protected function rowsToProcessBeforeCheckingForQuit(): int
+    {
+        return 10;
+    }
+
+    protected function secondsBeforeCheckingForQuit(): int
+    {
+        return 10;
+    }
+
+    protected function finish(): void
+    {
+        // Ensure any remaining increments are saved
+        if ($this->processedCount > 0) {
+            $this->import->increment('total_rows_processed', $this->processedCount);
+            $this->processedCount = 0;
+        }
+        if ($this->failedCount > 0) {
+            $this->import->increment('total_rows_failed', $this->failedCount);
+            $this->failedCount = 0;
+        }
     }
 }

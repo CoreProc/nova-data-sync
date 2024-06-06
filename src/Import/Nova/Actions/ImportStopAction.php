@@ -27,9 +27,9 @@ class ImportStopAction extends Action
         $import = $models->first();
 
         $import->update([
-            'status' => Status::STOPPED->value,
+            'status' => Status::STOPPING->value,
         ]);
 
-        return Action::message('Import has been stopped.');
+        return Action::message('Attempt to stop the import started..');
     }
 }

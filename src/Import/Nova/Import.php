@@ -56,6 +56,7 @@ class Import extends Resource
             Status::make('Status')
                 ->loadingWhen([StatusEnum::PENDING->value, StatusEnum::IN_PROGRESS->value])
                 ->failedWhen([
+                    StatusEnum::STOPPING->value,
                     StatusEnum::STOPPED->value,
                     StatusEnum::FAILED->value,
                 ]),
@@ -190,7 +191,11 @@ class Import extends Resource
      */
     public function authorizedToDelete(Request $request): bool
     {
-        return false;
+        return in_array($this->status, [
+            StatusEnum::COMPLETED->value,
+            StatusEnum::STOPPED->value,
+            StatusEnum::FAILED->value,
+        ]);
     }
 
     /**

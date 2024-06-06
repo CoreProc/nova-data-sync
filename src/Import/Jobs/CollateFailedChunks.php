@@ -37,15 +37,17 @@ class CollateFailedChunks implements ShouldQueue
      */
     public function handle(): void
     {
-        Log::debug('[CollateFailedChunks] Processing failed chunks', [
+        Log::info('[CollateFailedChunks] Processing failed chunks', [
             'import_id' => $this->import->id,
+            'processor' => $this->import->processor,
         ]);
 
         $failedChunksMedia = $this->import->getMedia('failed-chunks');
 
         if ($failedChunksMedia->count() === 0) {
-            Log::debug('[CollateFailedChunks] No failed chunks found', [
+            Log::info('[CollateFailedChunks] No failed chunks found', [
                 'import_id' => $this->import->id,
+                'processor' => $this->import->processor,
             ]);
             return;
         }
@@ -95,8 +97,9 @@ class CollateFailedChunks implements ShouldQueue
         $this->import->clearMediaCollection('failed-chunks');
 
         if (!$hasFailedRows) {
-            Log::debug('[CollateFailedChunks] No failed rows found', [
+            Log::info('[CollateFailedChunks] No failed rows found', [
                 'import_id' => $this->import->id,
+                'processor' => $this->import->processor,
             ]);
             unlink($failedImportsFilePath);
             return;
@@ -105,8 +108,9 @@ class CollateFailedChunks implements ShouldQueue
         $this->import->addMedia($failedImportsFilePath)
             ->toMediaCollection('failed', config('nova-data-sync.imports.disk'));
 
-        Log::debug('[CollateFailedChunks] Finished processing failed chunks', [
+        Log::info('[CollateFailedChunks] Finished processing failed chunks', [
             'import_id' => $this->import->id,
+            'processor' => $this->import->processor,
         ]);
     }
 }
