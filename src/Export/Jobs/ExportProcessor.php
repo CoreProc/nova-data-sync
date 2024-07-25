@@ -39,7 +39,7 @@ abstract class ExportProcessor implements ShouldQueue
     public function handle(): void
     {
         $jobs = [];
-        $perPage = 500; // Number of items per page
+        $perPage = static::chunkSize(); // Number of items per page
         $totalRecords = $this->query()->count();
         $totalPages = ceil($totalRecords / $perPage);
         $batchUuid = Str::uuid();
@@ -83,9 +83,15 @@ abstract class ExportProcessor implements ShouldQueue
             })
             ->allowFailures()
             ->name($this->name())
+            ->onQueue(config('nova-data-sync.exports.queue', 'default'))
             ->dispatch();
     }
 
+    public static function chunkSize(): int
+    {
+        return config('nova-data-sync.exports.chunk_size', 1000);
+    }
+    
     protected function name(): string
     {
         if (empty($this->name)) {
