@@ -221,7 +221,7 @@ Here is a sample `ExportProcessor`:
 ```php
 namespace App\Nova\Exports;
 
-use App\Models\User;
+use App\Models\Product;
 use Coreproc\NovaDataSync\Export\Jobs\ExportProcessor;
 use Illuminate\Contracts\Database\Query\Builder;
 
@@ -229,7 +229,34 @@ class UserExportProcessor extends ExportProcessor
 {
     public function query(): Builder
     {
-        return User::query();
+        return Product::query()->with('productCategory');
+    }
+}
+```
+
+You can also format the row data by defining the `formatRow()` method:
+
+```php
+namespace App\Nova\Exports;
+
+use App\Models\Product;
+use Coreproc\NovaDataSync\Export\Jobs\ExportProcessor;
+use Illuminate\Contracts\Database\Query\Builder;
+
+class UserExportProcessor extends ExportProcessor
+{
+    public function query(): Builder
+    {
+        return Product::query()->with('productCategory');
+    }
+    
+    public function formatRow($row): array
+    {
+        return [
+            'name' => $row->name,
+            'product_category' => $row->productCategory->name ?? null,
+            'price' => $row->price,
+        ];
     }
 }
 ```
