@@ -8,9 +8,11 @@ use Illuminate\Bus\Batch;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use stdClass;
 use Throwable;
 
 abstract class ExportProcessor implements ShouldQueue
@@ -30,6 +32,14 @@ abstract class ExportProcessor implements ShouldQueue
      */
     public function formatRow($row): array
     {
+        if ($row instanceof Model) {
+            $row = $row->toArray();
+        }
+
+        if ($row instanceof stdClass) {
+            $row = json_decode(json_encode($row), true);
+        }
+
         return $row;
     }
 

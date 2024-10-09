@@ -47,13 +47,7 @@ class ExportToCsv implements ShouldQueue
         $csvWriter = SimpleExcelWriter::create($csvPath, 'csv');
 
         $items->each(function ($item) use ($csvWriter) {
-            if ($item instanceof Model) {
-                $item = $item->toArray();
-            }
-
-            if ($item instanceof stdClass) {
-                $item = json_decode(json_encode($item), true);
-            }
+            $item = $this->processor->formatRow($item);
 
             // Convert arrays inside $data to strings
             foreach ($item as $key => $value) {
@@ -62,7 +56,7 @@ class ExportToCsv implements ShouldQueue
                 }
             }
 
-            $csvWriter->addRow($this->processor->formatRow($item));
+            $csvWriter->addRow($item);
         });
 
         $csvWriter->close();
