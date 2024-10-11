@@ -351,20 +351,41 @@ returns the processor class you just created.
 ```php
 namespace App\Nova\Exports;
 
-use Coreproc\NovaDataSync\Export\Jobs\ExportProcessor;
 use Coreproc\NovaDataSync\Export\Nova\Action\ExportNovaAction;
 
-class UserExportAction extends ExportNovaAction
+class ProductExportAction extends ExportNovaAction
 {
     protected function processor(ActionFields $fields, Collection $models): ExportProcessor
     {
-        return new UserExportProcessor();
+        return new ProductExportProcessor();
     }
 }
 ```
 
 If you have additional fields that you want to add to the Export feature, you can define them in the `fields()` method
 and access them through the `$fields` property.
+
+```php
+namespace App\Nova\Exports;
+
+use Coreproc\NovaDataSync\Export\Nova\Action\ExportNovaAction;
+
+class ProductExportAction extends ExportNovaAction
+{
+    protected function processor(ActionFields $fields, Collection $models): ExportProcessor
+    {
+        return new ProductExportProcessor($fields->get('start_date'), $fields->get('end_date'));
+    }
+
+    public function fields(NovaRequest $request): array
+    {
+        return [
+            Date::make('Start Date')->required(),
+            Date::make('End Date')->required(),
+        ];
+    }
+}
+```
 
 Now, you can add the `ExportNovaAction` to your Nova Resource:
 
