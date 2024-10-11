@@ -5,6 +5,7 @@ namespace Coreproc\NovaDataSync\Export\Jobs;
 use Coreproc\NovaDataSync\Enum\Status;
 use Coreproc\NovaDataSync\Export\Models\Export;
 use Illuminate\Bus\Batch;
+use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -17,6 +18,8 @@ use Throwable;
 
 abstract class ExportProcessor implements ShouldQueue
 {
+    use Queueable;
+
     protected ?Authenticatable $user = null;
 
     protected string $disk = '';
@@ -25,7 +28,15 @@ abstract class ExportProcessor implements ShouldQueue
 
     protected string $directory = '';
 
+    /**
+     * Pass your query here as a Builder instance
+     */
     abstract public function query(): Builder;
+
+    public function __construct()
+    {
+        $this->onQueue($this->queue());
+    }
 
     /**
      * Extend this method to format the item before exporting
@@ -91,7 +102,7 @@ abstract class ExportProcessor implements ShouldQueue
                     "failedJobs" => $batch->failedJobs,
                 ]);
             })
-            ->allowFailures()
+            ->allowFailures($this->allowFailures())
             ->name($this->name())
             ->onQueue(config('nova-data-sync.exports.queue', 'default'))
             ->dispatch();
@@ -110,6 +121,22 @@ abstract class ExportProcessor implements ShouldQueue
         }
 
         return $this->name;
+    }
+
+    /**
+     * Override this in your ExportProcessor class to set a different queue.
+     */
+    protected function queue(): string
+    {
+        return config('nova-data-sync.exports.queue', 'default');
+    }
+
+    /**
+     * Override this in your ExportProcessor class to set allow failures in the batch job.
+     */
+    protected function allowFailures(): bool
+    {
+        return true;
     }
 
     protected function directory(): string
