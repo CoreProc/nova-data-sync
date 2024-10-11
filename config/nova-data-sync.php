@@ -14,6 +14,7 @@ return [
         'chunk_size' => 1000,
         'queue' => 'default',
         'table_name' => 'exports',
+        'allow_failures' => true,
     ],
 
     'nova_resources' => [

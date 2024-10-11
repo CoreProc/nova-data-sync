@@ -284,8 +284,69 @@ class UserExportProcessor extends ExportProcessor
 }
 ```
 
-Next, create an `ExportNovaAction` class and create a `processor()` function that returns the processor class you just
-created.
+You can also override methods in the `ExportProcessor` class to customize the export process. The following methods can
+be overridden:
+
+```php
+<?php
+
+namespace App\Nova\Exports\Products;
+
+use App\Models\Product;
+use Coreproc\NovaDataSync\Export\Jobs\ExportProcessor;
+use Illuminate\Contracts\Database\Query\Builder;
+
+class ProductExportProcessor extends ExportProcessor
+{
+    public function __construct(public string $startDate, public string $endDate)
+    {
+        // Always remember to call the parent constructor when overriding the constructor
+        parent::__construct();
+    }
+
+    public function query(): Builder
+    {
+        $startDate = Carbon::make($this->startDate)->startOfDay();
+        $endDate = Carbon::make($this->endDate)->endOfDay();
+
+        return Product::query()
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->with('productCategory');
+    }
+
+    public function formatRow($row): array
+    {
+        return [
+            'name' => $row->name,
+            'product cat' => $row->productCategory->name ?? null,
+            'price' => $row->price,
+        ];
+    }
+
+    public static function queueName(): string
+    {
+        return 'custom-queue-name'; // Default is whatever is set in the config
+    }
+
+    public function allowFailures(): bool
+    {
+        return true; // Default is whatever is set in the config
+    }
+
+    public function disk(): string
+    {
+        return 'custom-disk-name'; // Default is whatever is set in the config
+    }
+
+    public static function chunkSize(): int
+    {
+        return 100; // Default is whatever is set in the config
+    }
+}
+```
+
+Next, in order to use it as a Nova Action, create an `ExportNovaAction` class and create a `processor()` function that 
+returns the processor class you just created.
 
 ```php
 namespace App\Nova\Exports;

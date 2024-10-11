@@ -28,14 +28,11 @@ abstract class ExportProcessor implements ShouldQueue
 
     protected string $directory = '';
 
-    /**
-     * Pass your query here as a Builder instance
-     */
     abstract public function query(): Builder;
 
     public function __construct()
     {
-        $this->onQueue($this->queue());
+        $this->onQueue(self::queueName());
     }
 
     /**
@@ -104,7 +101,7 @@ abstract class ExportProcessor implements ShouldQueue
             })
             ->allowFailures($this->allowFailures())
             ->name($this->name())
-            ->onQueue(config('nova-data-sync.exports.queue', 'default'))
+            ->onQueue(self::queueName())
             ->dispatch();
     }
 
@@ -124,19 +121,19 @@ abstract class ExportProcessor implements ShouldQueue
     }
 
     /**
-     * Override this in your ExportProcessor class to set a different queue.
+     * The queue to use for the export
      */
-    protected function queue(): string
+    public static function queueName(): string
     {
         return config('nova-data-sync.exports.queue', 'default');
     }
 
     /**
-     * Override this in your ExportProcessor class to set allow failures in the batch job.
+     * Whether to allow failures in the batch job
      */
-    protected function allowFailures(): bool
+    public function allowFailures(): bool
     {
-        return true;
+        return config('nova-data-sync.exports.allow_failures', true);
     }
 
     protected function directory(): string
