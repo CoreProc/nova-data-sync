@@ -33,9 +33,11 @@ class ExportToCsv implements ShouldQueue
      */
     public function handle(): void
     {
-        $items = $this->processor->query()->forPage($this->page, $this->perPage)->get();
+        $items = $this->processor->query()
+            ->lazy()
+            ->forPage($this->page, $this->perPage);
 
-        if (empty($items)) {
+        if ($items->isEmpty()) {
             return;
         }
 
@@ -46,10 +48,9 @@ class ExportToCsv implements ShouldQueue
         $csvPath = $this->storagePath($fileName);
         $csvWriter = SimpleExcelWriter::create($csvPath, 'csv');
 
-        $items->each(function ($item) use ($csvWriter) {
+        foreach ($items as $item) {
             $item = $this->processor->formatRow($item);
 
-            // Convert arrays inside $data to strings
             foreach ($item as $key => $value) {
                 if (is_array($value)) {
                     $item[$key] = json_encode($value);
@@ -57,7 +58,7 @@ class ExportToCsv implements ShouldQueue
             }
 
             $csvWriter->addRow($item);
-        });
+        }
 
         $csvWriter->close();
     }
