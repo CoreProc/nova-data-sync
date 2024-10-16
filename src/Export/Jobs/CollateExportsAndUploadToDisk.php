@@ -4,6 +4,7 @@ namespace Coreproc\NovaDataSync\Export\Jobs;
 
 use Coreproc\NovaDataSync\Enum\Status;
 use Coreproc\NovaDataSync\Export\Models\Export;
+use Coreproc\NovaDataSync\Import\Events\ExportCompletedEvent;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -46,7 +47,7 @@ class CollateExportsAndUploadToDisk implements ShouldQueue
             'files' => $files,
         ]);
 
-        $collatedFileName = $this->exportName . '-' . now()->format('YmdHis') . '.csv';
+        $collatedFileName = $this->exportName . '.csv';
         $collatedFilePath = $this->storagePath($collatedFileName);
         $collatedFileWriter = SimpleExcelWriter::create($collatedFilePath);
 
@@ -82,6 +83,8 @@ class CollateExportsAndUploadToDisk implements ShouldQueue
             'status' => Status::COMPLETED,
             'completed_at' => now(),
         ]);
+
+        event(new ExportCompletedEvent($this->export));
     }
 
     protected function storagePath($path = ''): string

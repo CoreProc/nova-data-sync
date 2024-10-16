@@ -4,6 +4,7 @@ namespace Coreproc\NovaDataSync\Export\Jobs;
 
 use Coreproc\NovaDataSync\Enum\Status;
 use Coreproc\NovaDataSync\Export\Models\Export;
+use Coreproc\NovaDataSync\Import\Events\ExportStartedEvent;
 use Illuminate\Bus\Batch;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -87,6 +88,8 @@ abstract class ExportProcessor implements ShouldQueue
                 $export->update([
                     'status' => Status::IN_PROGRESS->value,
                 ]);
+
+                event(new ExportStartedEvent($export));
             })
             ->then(function (Batch $batch) use ($export, $batchUuid, $exportDisk, $exportName, $exportDirectory) {
                 // Collate and upload to disk job
@@ -110,11 +113,14 @@ abstract class ExportProcessor implements ShouldQueue
         return config('nova-data-sync.exports.chunk_size', 1000);
     }
 
+    /**
+     * Override this method to set the name of the export. Make sure it is unique to avoid conflicts with other files
+     */
     protected function name(): string
     {
         if (empty($this->name)) {
             // return the base name of the class
-            return class_basename($this);
+            return class_basename($this) . '-' . now()->format('YmdHis');
         }
 
         return $this->name;
