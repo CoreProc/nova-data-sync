@@ -62,6 +62,8 @@ class BulkImportProcessor implements ShouldQueue
                 'status' => Status::FAILED,
                 'completed_at' => now(),
             ]);
+
+            throw $e;
         }
 
         Log::info('[BulkImportProcessor] Starting bulk import...', [
