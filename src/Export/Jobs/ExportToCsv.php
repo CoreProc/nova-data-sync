@@ -33,6 +33,10 @@ class ExportToCsv implements ShouldQueue
      */
     public function handle(): void
     {
+        if ($this->batch()->cancelled()) {
+            return;
+        }
+
         $items = $this->processor->query()
             ->lazy()
             ->forPage($this->page, $this->perPage);
