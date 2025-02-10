@@ -102,6 +102,13 @@ abstract class ExportProcessor implements ShouldQueue
                     "failedJobs" => $batch->failedJobs,
                 ]);
             })
+            ->finally(function (Batch $batch) use ($export) {
+                if ($batch->cancelled()) {
+                    $export->update([
+                        'status' => Status::FAILED->value
+                    ]);
+                }
+            })
             ->allowFailures($this->allowFailures())
             ->name($this->name())
             ->onQueue(self::queueName())

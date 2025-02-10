@@ -15,6 +15,7 @@ use Spatie\MediaLibrary\MediaCollections\Exceptions\FileDoesNotExist;
 use Spatie\MediaLibrary\MediaCollections\Exceptions\FileIsTooBig;
 use Spatie\SimpleExcel\SimpleExcelReader;
 use Spatie\SimpleExcel\SimpleExcelWriter;
+use Throwable;
 
 class CollateExportsAndUploadToDisk implements ShouldQueue
 {
@@ -116,5 +117,12 @@ class CollateExportsAndUploadToDisk implements ShouldQueue
         });
 
         return $filteredFiles;
+    }
+
+    public function failed(?Throwable $exception): void
+    {
+        $this->export->update([
+            'status' => Status::FAILED->value
+        ]);
     }
 }
