@@ -4,6 +4,15 @@ This is a Laravel Nova tool to that provides features to import and export CSV f
 
 ![Import Action](https://raw.githubusercontent.com/coreproc/nova-data-sync/main/docs/import-index.png)
 
+## Versions
+
+When using Laravel Nova 4.x, use version `^2.0` of this package.
+
+When using Laravel Nova 5.x, use version `^3.0` of this package.
+
+Note to maintainers: We will be maintaining two branches for this package. The `2.x` branch will be for Laravel Nova 4.x
+support and the `main` branch will be for Laravel Nova 5.x support.
+
 ## Installation
 
 You can install the package in to a Laravel app that uses Nova via composer:
