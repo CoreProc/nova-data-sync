@@ -14,6 +14,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -100,6 +101,24 @@ class BulkImportProcessor implements ShouldQueue
         Log::debug('[BulkImportProcessor] Dispatching jobs...', [$jobs]);
 
         $import = $this->import;
+
+        // Ensure fresh database connection for batch dispatch
+        // This is critical in multi-tenant environments where DB::purge() may have been called
+        // during tenant switching, causing the Connection object in DatabaseBatchRepository
+        // to have a null PDO. This fix is safe for non-multi-tenant apps as well.
+        $batchConnection = config('queue.batching.database');
+
+        if ($batchConnection) {
+            // Purge and reconnect to ensure clean connection state
+            DB::purge($batchConnection);
+
+            // Forget both BatchRepository singletons so they get rebuilt with fresh connection
+            app()->forgetInstance('Illuminate\Bus\BatchRepository');
+            app()->forgetInstance('Illuminate\Bus\DatabaseBatchRepository');
+
+            // Force connection to be established
+            DB::connection($batchConnection)->reconnect();
+        }
 
         Bus::batch($jobs)
             ->then(function (Batch $batch) {
