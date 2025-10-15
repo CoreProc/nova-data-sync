@@ -106,9 +106,13 @@ class BulkImportProcessor implements ShouldQueue
         // This is critical in multi-tenant environments where DB::purge() may have been called
         // during tenant switching, causing the Connection object in DatabaseBatchRepository
         // to have a null PDO. This fix is safe for non-multi-tenant apps as well.
+        //
+        // IMPORTANT: Do NOT purge the landlord connection as it can lose its database
+        // configuration in multi-tenant setups. The landlord connection should remain stable.
         $batchConnection = config('queue.batching.database');
+        $landlordConnection = config('multitenancy.landlord_database_connection_name', 'landlord');
 
-        if ($batchConnection) {
+        if ($batchConnection && $batchConnection !== $landlordConnection) {
             // Purge and reconnect to ensure clean connection state
             DB::purge($batchConnection);
 
