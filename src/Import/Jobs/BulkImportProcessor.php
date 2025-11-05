@@ -50,6 +50,23 @@ class BulkImportProcessor implements ShouldQueue
             return;
         }
 
+        try {
+            $this->process();
+        } catch (Throwable $e) {
+            Log::error('[BulkImportProcessor] Error processing import.', [
+                'import_id' => $this->import->id,
+                'import_processor' => $this->import->processor,
+                'error' => $e->getMessage(),
+            ]);
+
+            $this->import->update([
+                'status' => Status::FAILED,
+                'completed_at' => now(),
+            ]);
+
+            throw $e;
+        }
+
         Log::info('[BulkImportProcessor] Starting bulk import...', [
             'import_id' => $this->import->id,
             'import_processor' => $this->import->processor,
